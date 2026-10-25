@@ -1,11 +1,32 @@
+# Local configuration (copy from config.example.json)
 config.json
+
+# Generated library data and script outputs
 library.json
 library_demo.json
 tmdb_cache.json
+tmdb_match_cache.json
 unmatched_movies.json
+organize_plan.json
+rename_log.json
+
+# Runtime
 server.log
 thumbs/
+
+# Python
 *.pyc
 __pycache__/
 .venv/
+
+# Editors
 .vscode/
+.history/
+
+# macOS metadata and AppleDouble files created on NFS/SMB shares
+.DS_Store
+.AppleDouble/
+.AppleDB/
+.Spotlight-V100/
+.Trashes/
+._*
