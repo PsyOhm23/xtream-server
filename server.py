@@ -9,8 +9,10 @@ import urllib.request
 import urllib.parse
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from flask import Flask, jsonify, request, send_file
+from flask import Flask, jsonify, redirect, request, send_file
 
+import demo_epg
+import demo_generator
 import media_detail
 import media_match
 
@@ -28,7 +30,9 @@ DEFAULT_CONFIG = {
         "admin": "admin",
         "system": "system",
         "all": "all",
-        "demo": "demo"
+        "demo": "demo",
+        "demo_fr": "demo_fr",
+        "demo_en": "demo_en"
     }
 }
 
@@ -45,7 +49,14 @@ config = load_config()
 TMDB_API_KEY = config.get("tmdb_api_key", "")
 MEDIA_DIRS = config.get("media_dirs", ["/media/3To/videos"])
 SYSTEM_DIRS = config.get("system_dirs", ["/media/3To/system/lost"])
-USERS = config.get("users", {"admin": "admin", "system": "system", "all": "all", "demo": "demo"})
+USERS = config.get("users", {
+    "admin": "admin",
+    "system": "system",
+    "all": "all",
+    "demo": "demo",
+    "demo_fr": "demo_fr",
+    "demo_en": "demo_en",
+})
 
 EXTENSIONS = ['.mp4', '.mkv', '.avi', '.mov', '.m4v', '.m2ts', '.mp3', '.flac']
 LIBRARY_FILES = config.get("library_files", {
@@ -639,65 +650,15 @@ def get_categorized_videos(ensure_fresh=False, username=None):
 
 
 def _build_catalog(username=None):
-    library = load_library(username)
-    videos = []
-
-    if username == "demo":
-        # Build catalog directly from demo library structure
-        for path, movie in library.get("movies", {}).items():
-            meta = meta_from_library(movie)
-            name = display_movie_name(movie, movie.get("title", "Demo"))
-            cat_name = movie_category_name(movie)
-            stream_id = numeric_id(path)
-            videos.append({
-                "stream_id": stream_id,
-                "_identity": f"demo:{path}",
-                "name": name,
-                "title": name,
-                "category_name": cat_name,
-                "category_id": stable_category_id("movie", cat_name),
-                "kind": "movie",
-                "container_extension": "mp4",
-                "path": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-                "direct_source": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-                "meta": meta,
-                "series_id": "",
-                "season": None,
-                "episode": None,
-            })
-        for show_key, show in library.get("shows", {}).items():
-            show_title = show.get("title", "Demo Series")
-            cat_name = show_category_name(show)
-            meta = meta_from_library(show)
-            series_id = str(show.get("tmdb_id") or stable_category_id(show_title))
-            for rel, ep in library.get("episodes", {}).items():
-                if ep.get("show") != show_key:
-                    continue
-                season = int(ep.get("season") or 1)
-                episode_num = int(ep.get("episode") or 1)
-                ep_title = ep.get("title") or f"Episode {episode_num}"
-                name = f"{show_title} - S{season:02d}E{episode_num:02d} - {ep_title}"
-                stream_id = numeric_id(rel)
-                videos.append({
-                    "stream_id": stream_id,
-                    "_identity": f"demo:{rel}",
-                    "name": name,
-                    "title": name,
-                    "category_name": cat_name,
-                    "category_id": stable_category_id("show", cat_name),
-                    "kind": "episode",
-                    "container_extension": "mp4",
-                    "path": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-                    "direct_source": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-                    "meta": meta,
-                    "series_id": series_id,
-                    "season": season,
-                    "episode": episode_num,
-                })
+    if demo_generator.is_demo_user(username):
+        videos = demo_generator.build_catalog(username)
         categories = {}
         for video in videos:
             categories.setdefault(video["category_name"], []).append(video)
         return assign_stream_ids(videos), categories
+
+    library = load_library(username)
+    videos = []
 
     std_dir = MEDIA_DIRS[0] if MEDIA_DIRS else ""
 
@@ -712,9 +673,52 @@ def filter_videos_for_user(videos, username, password):
         return [v for v in videos if "/system/lost" in v["path"]]
     elif username == "admin":
         return [v for v in videos if "/system/lost" not in v["path"]]
-    elif username == "demo":
-        return videos
     return videos
+
+
+def ordered_categories(videos, kinds):
+    """Category rows. Demo ids stay in config order. Real libraries stay alphabetical."""
+    found = {}
+    for video in videos:
+        if video["kind"] not in kinds:
+            continue
+        found.setdefault(video["category_id"], video["category_name"])
+    ids = list(found)
+    if ids and all(str(category_id).isdigit() and int(category_id) < 100 for category_id in ids):
+        ids.sort(key=lambda category_id: int(category_id))
+    else:
+        ids.sort(key=lambda category_id: found[category_id])
+    return [
+        {"category_id": category_id, "category_name": found[category_id], "parent_id": 0}
+        for category_id in ids
+    ]
+
+
+def live_stream_items(videos, category_id):
+    items = []
+    for video in videos:
+        if video["kind"] != "live":
+            continue
+        if category_id and str(video["category_id"]) != str(category_id):
+            continue
+        source = video.get("path") or ""
+        if not source.startswith(("http://", "https://")):
+            source = ""
+        items.append({
+            "num": len(items) + 1,
+            "name": video["name"],
+            "stream_type": "live",
+            "stream_id": video["stream_id"],
+            "stream_icon": (video.get("meta") or {}).get("poster") or "",
+            "epg_channel_id": video.get("epg_channel_id") or f"ch_{video['stream_id']}",
+            "added": video.get("added") or "0",
+            "category_id": video["category_id"],
+            "custom_sid": "",
+            "tv_archive": 0,
+            "direct_source": source,
+            "tv_archive_duration": 0,
+        })
+    return items
 
 @app.route("/")
 def index():
@@ -739,8 +743,9 @@ def get_php():
         
     m3u = "#EXTM3U\n"
     for v in user_videos:
+        section = "live" if v["kind"] == "live" else "series" if v["kind"] == "episode" else "movie"
         m3u += f'#EXTINF:-1 tvg-id="" tvg-name="{v["name"]}" group-title="{v["category_name"]}",{v["name"]}\n'
-        m3u += f"http://{request.host}/movie/{username}/{password}/{v['stream_id']}.{v['container_extension']}\n"
+        m3u += f"http://{request.host}/{section}/{username}/{password}/{v['stream_id']}.{v['container_extension']}\n"
     return m3u, 200, {"Content-Type": "audio/x-mpegurl"}
 
 @app.route("/player_api.php")
@@ -755,42 +760,44 @@ def player_api():
     if not action:
         return jsonify(xtream_auth_payload(username))
 
-    if action == "get_live_categories" or action == "get_live_streams":
-        # Movies and system files are VOD. This server has no live channels.
-        return jsonify([])
-
     videos, _ = get_categorized_videos(ensure_fresh=True, username=username)
     user_videos = filter_videos_for_user(videos, username, password)
 
+    if action == "get_live_categories":
+        if not demo_generator.is_demo_user(username):
+            return jsonify([])
+        return jsonify(ordered_categories(user_videos, {"live"}))
+
+    if action == "get_live_streams":
+        if not demo_generator.is_demo_user(username):
+            return jsonify([])
+        return jsonify(live_stream_items(user_videos, request.args.get("category_id")))
+
+    if action == "get_short_epg":
+        if not demo_generator.is_demo_user(username):
+            return jsonify({"epg_listings": []})
+        stream_id = request.args.get("stream_id")
+        target = next(
+            (video for video in user_videos if video["kind"] == "live" and str(video["stream_id"]) == str(stream_id)),
+            None,
+        )
+        if not target:
+            return jsonify({"epg_listings": []})
+        return jsonify(demo_epg.short_epg(target, demo_generator.language_for(username)))
+
     if action == "get_vod_categories":
-        cats = {}
-        for video in user_videos:
-            if video["kind"] == "episode":
-                continue
-            cats[video["category_name"]] = video["category_id"]
-        return jsonify([
-            {"category_id": cid, "category_name": name, "parent_id": 0}
-            for name, cid in sorted(cats.items())
-        ])
+        return jsonify(ordered_categories(user_videos, {"movie"}))
 
     elif action == "get_series_categories":
-        cats = {}
-        for video in user_videos:
-            if video["kind"] != "episode":
-                continue
-            cats[video["category_name"]] = video["category_id"]
-        return jsonify([
-            {"category_id": cid, "category_name": name, "parent_id": 0}
-            for name, cid in sorted(cats.items())
-        ])
+        return jsonify(ordered_categories(user_videos, {"episode"}))
 
     elif action == "get_vod_streams":
         cat_filter = request.args.get("category_id")
         streams = []
         for video in user_videos:
-            if video["kind"] == "episode":
+            if video["kind"] != "movie":
                 continue
-            if cat_filter and video["category_id"] != cat_filter:
+            if cat_filter and str(video["category_id"]) != str(cat_filter):
                 continue
             streams.append(vod_stream_item(video, len(streams) + 1))
         return jsonify(streams)
@@ -799,7 +806,7 @@ def player_api():
         vod_id = request.args.get("vod_id")
         target = None
         for video in user_videos:
-            if str(video["stream_id"]) == str(vod_id):
+            if video["kind"] == "movie" and str(video["stream_id"]) == str(vod_id):
                 target = video
                 break
         if not target:
@@ -815,7 +822,7 @@ def player_api():
         for video in user_videos:
             if video["kind"] != "episode" or video["series_id"] in seen:
                 continue
-            if cat_filter and video["category_id"] != cat_filter:
+            if cat_filter and str(video["category_id"]) != str(cat_filter):
                 continue
             seen.add(video["series_id"])
             series_list.append(series_list_item(video, len(series_list) + 1))
@@ -833,27 +840,64 @@ def player_api():
         
     return jsonify({"error": "Unknown action"}), 400
 
-def serve_stream(username, password, stream_id, extension):
+def serve_stream(username, password, stream_id, extension, route):
     """Send the media file for a numeric Xtream stream id.
 
     The id selects the file. Some clients keep requesting .mp4 even when
     container_extension says mkv, so a mismatched suffix still returns the file.
+    Demo accounts redirect to a public test stream instead of a local file.
     """
     if username not in USERS or USERS[username] != password:
         return "Unauthorized", 401
-    get_categorized_videos()
+    get_categorized_videos(ensure_fresh=True, username=username)
     with _catalog_lock:
-        video = _catalog_cache["by_id"].get(stream_id)
+        video = (_catalog_cache.get(f"by_id_{username}") or {}).get(stream_id)
+    if demo_generator.is_demo_user(username):
+        expected = {"live": "live", "movie": "movie", "series": "episode"}
+        if not video or video.get("kind") != expected.get(route):
+            return "Not Found", 404
+        return redirect(demo_generator.playback_url(route, stream_id, extension), code=302)
     if not video:
         return "Not Found", 404
     mime = MIME_TYPES.get(video["container_extension"], "application/octet-stream")
     return send_file(video["path"], conditional=True, mimetype=mime)
 
 
+@app.route("/live/<username>/<password>/<int:stream_id>.<extension>")
+def serve_live(username, password, stream_id, extension):
+    return serve_stream(username, password, stream_id, extension, "live")
+
+
+@app.route("/<username>/<password>/<int:stream_id>")
+@app.route("/<username>/<password>/<int:stream_id>.<extension>")
+def serve_short_live(username, password, stream_id, extension="m3u8"):
+    """Live playback as the app builds it: /username/password/streamId, with no /live prefix."""
+    return serve_stream(username, password, stream_id, extension, "live")
+
+
 @app.route("/movie/<username>/<password>/<int:stream_id>.<extension>")
-@app.route("/series/<username>/<password>/<int:stream_id>.<extension>")
 def serve_movie(username, password, stream_id, extension):
-    return serve_stream(username, password, stream_id, extension)
+    return serve_stream(username, password, stream_id, extension, "movie")
+
+
+@app.route("/series/<username>/<password>/<int:stream_id>.<extension>")
+def serve_series(username, password, stream_id, extension):
+    return serve_stream(username, password, stream_id, extension, "series")
+
+
+@app.route("/xmltv.php")
+def xmltv():
+    username = request.args.get("username")
+    password = request.args.get("password")
+    if username not in USERS or USERS[username] != password:
+        return "Unauthorized", 401
+    if not demo_generator.is_demo_user(username):
+        body = '<?xml version="1.0" encoding="UTF-8"?>\n<tv></tv>\n'
+        return body, 200, {"Content-Type": "application/xml; charset=utf-8"}
+    videos, _ = get_categorized_videos(ensure_fresh=True, username=username)
+    channels = [video for video in videos if video["kind"] == "live"]
+    body = demo_epg.xmltv(channels, demo_generator.language_for(username))
+    return body, 200, {"Content-Type": "application/xml; charset=utf-8"}
 
 def xtream_auth_payload(username):
     now = time.time()
@@ -960,10 +1004,11 @@ def category_ids_for(category_id):
 
 def episode_xtream_info(video, meta):
     """Episode info block for get_series_info, with sidecar tech details when present."""
-    poster = meta.get("poster") or ""
+    poster = video.get("episode_image") or meta.get("poster") or ""
+    plot = video.get("episode_plot") or meta.get("overview") or ""
     tmdb_id = meta.get("id") or 0
     try:
-        rating_value = float(meta.get("rating") or 0)
+        rating_value = float(video.get("episode_rating") if video.get("episode_rating") not in (None, "") else meta.get("rating") or 0)
     except (TypeError, ValueError):
         rating_value = 0.0
     info = {
@@ -971,7 +1016,7 @@ def episode_xtream_info(video, meta):
         "crew": meta.get("director") or "",
         "rating": rating_value,
         "movie_image": poster,
-        "plot": meta.get("overview") or "",
+        "plot": plot,
     }
     if tmdb_id:
         info["id"] = int(tmdb_id)
@@ -989,6 +1034,9 @@ def episode_xtream_info(video, meta):
         if seconds:
             info["duration_secs"] = int(round(seconds))
             info["duration"] = detail.get("duration") or format_duration(seconds)
+    if "duration_secs" not in info and video.get("duration_secs"):
+        info["duration_secs"] = int(round(video["duration_secs"]))
+        info["duration"] = format_duration(video["duration_secs"])
     return info
 
 
@@ -1015,8 +1063,9 @@ def series_info_payload(episodes):
     payload = {}
     for season in sorted(int(key) for key in episodes_by_season):
         rows = sorted(episodes_by_season[str(season)], key=lambda item: (item[0] == 0, item[0]))
+        season_label = "Season" if episodes[0].get("lang") == "en" else "Saison"
         seasons.append({
-            "name": f"Saison {season}",
+            "name": f"{season_label} {season}",
             "episode_count": str(len(rows)),
             "overview": meta.get("overview") or "",
             "air_date": release,
@@ -1180,12 +1229,14 @@ def vod_info_payload(video):
     backdrop = meta.get("backdrop") or backdrop_url(video["stream_id"])
     plot = meta.get("overview") or ""
     cast = meta.get("cast") or ""
-    seconds = None
-    detail = media_detail.load_detail(video["path"])
-    if detail and detail.get("duration_secs"):
-        seconds = detail["duration_secs"]
-    if not seconds:
-        seconds = duration_secs(video["path"])
+    seconds = video.get("duration_secs") or None
+    detail = None
+    if not str(video.get("path") or "").startswith("http"):
+        detail = media_detail.load_detail(video["path"])
+        if detail and detail.get("duration_secs"):
+            seconds = detail["duration_secs"]
+        if not seconds:
+            seconds = duration_secs(video["path"])
     info = {
         "name": video["name"],
         "o_name": meta.get("original_title") or meta.get("title") or video["name"],

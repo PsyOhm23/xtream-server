@@ -10,7 +10,9 @@
     "admin": "admin",
     "system": "system",
     "all": "all",
-    "demo": "demo"
+    "demo": "demo",
+    "demo_fr": "demo_fr",
+    "demo_en": "demo_en"
   },
   "library_files": {
     "admin": "library.json",

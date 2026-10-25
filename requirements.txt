@@ -1,2 +1,3 @@
 flask
 werkzeug
+faker==40.43.0
