@@ -48,7 +48,12 @@ SYSTEM_DIRS = config.get("system_dirs", ["/media/3To/system/lost"])
 USERS = config.get("users", {"admin": "admin", "system": "system", "all": "all", "demo": "demo"})
 
 EXTENSIONS = ['.mp4', '.mkv', '.avi', '.mov', '.m4v', '.m2ts', '.mp3', '.flac']
-LIBRARY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "library.json")
+LIBRARY_FILES = config.get("library_files", {
+    "admin": "library.json",
+    "system": "library.json",
+    "all": "library.json",
+    "demo": "library_demo.json"
+})
 THUMB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "thumbs")
 os.makedirs(THUMB_DIR, exist_ok=True)
 try:
@@ -293,11 +298,11 @@ def stable_category_id(name, kind=None):
     return str(int(hashlib.md5(token.encode("utf-8")).hexdigest()[:6], 16))
 
 def load_library(username=None):
-    lib_path = LIBRARY_FILE
-    if username == "demo":
-        demo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "library_demo.json")
-        if os.path.exists(demo_path):
-            lib_path = demo_path
+    filename = LIBRARY_FILES.get(username, "library.json") if username else "library.json"
+    lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+    if not os.path.exists(lib_path):
+        # Fallback to main library.json if specific one missing
+        lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "library.json")
     if not os.path.exists(lib_path):
         return {"movies": {}, "shows": {}, "episodes": {}}
     mtime = os.path.getmtime(lib_path)
@@ -541,11 +546,10 @@ def file_added_stamp(path):
 
 
 def _library_mtime(username=None):
-    lib_path = LIBRARY_FILE
-    if username == "demo":
-        demo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "library_demo.json")
-        if os.path.exists(demo_path):
-            lib_path = demo_path
+    filename = LIBRARY_FILES.get(username, "library.json") if username else "library.json"
+    lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+    if not os.path.exists(lib_path):
+        lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "library.json")
     try:
         return os.path.getmtime(lib_path)
     except OSError:

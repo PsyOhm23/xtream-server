@@ -11,5 +11,11 @@
     "system": "system",
     "all": "all",
     "demo": "demo"
+  },
+  "library_files": {
+    "admin": "library.json",
+    "system": "library.json",
+    "all": "library.json",
+    "demo": "library_demo.example.json"
   }
 }

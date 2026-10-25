@@ -1,0 +1,105 @@
+{
+  "generated_at": "2026-10-10T00:00:00+00:00",
+  "movies": {
+    "videos/demo/Big Buck Bunny (2008).mp4": {
+      "title": "Big Buck Bunny",
+      "year": 2008,
+      "category": "FR | Démo Animation",
+      "overview": "Un grand lapin gentil subit les brimades de trois rongeurs malicieux avant de décider de leur donner une bonne leçon.",
+      "rating": 7.5,
+      "poster": "https://upload.wikimedia.org/wikipedia/commons/c/c5/Big_buck_bunny_poster_big.jpg",
+      "backdrop": "https://peach.blender.org/wp-content/uploads/title-anims.jpg",
+      "director": "Saschka Unseld",
+      "cast": "Bunny, Rodents, Butterfly",
+      "genre": "Animation"
+    },
+    "videos/demo/Sintel (2010).mp4": {
+      "title": "Sintel",
+      "year": 2010,
+      "category": "FR | Démo Animation",
+      "overview": "Une jeune guerrière solitaire prénommée Sintel se lie d un lien fort avec un jeune dragon qu elle appellera Scales.",
+      "rating": 8.1,
+      "poster": "https://upload.wikimedia.org/wikipedia/commons/8/8f/Sintel_poster.jpg",
+      "backdrop": "https://download.blender.org/durian/movies/sintel-2-540.jpg",
+      "director": "Colin Levy",
+      "cast": "Sintel, Scales",
+      "genre": "Animation"
+    },
+    "videos/demo/Tears of Steel (2012).mp4": {
+      "title": "Tears of Steel",
+      "year": 2012,
+      "category": "FR | Démo Sci-Fi",
+      "overview": "Dans un futur post-apocalyptique à Amsterdam, un groupe de rebelles tente de modifier le passé pour sauver le monde.",
+      "rating": 7.0,
+      "poster": "https://upload.wikimedia.org/wikipedia/commons/1/17/Tears_of_Steel_poster.jpg",
+      "backdrop": "https://mango.blender.org/wp-content/uploads/2012/11/tos_poster.jpg",
+      "director": "Ian Hubert",
+      "cast": "Thom, Celia, Paul",
+      "genre": "Science-Fiction"
+    },
+    "videos/demo/Cosmos Laundromat (2015).mp4": {
+      "title": "Cosmos Laundromat",
+      "year": 2015,
+      "category": "FR | Démo Animation",
+      "overview": "Sur une île isolée et désolée, un mouton suicidaire nommé Franck rencontre un vendeur ambulant mystérieux.",
+      "rating": 7.8,
+      "poster": "https://upload.wikimedia.org/wikipedia/commons/2/23/Cosmos_Laundromat_poster.jpg",
+      "backdrop": "https://peach.blender.org/wp-content/uploads/title-anims.jpg",
+      "director": "Mathieu Auvray",
+      "cast": "Franck, Victor",
+      "genre": "Animation"
+    },
+    "videos/demo/Agent 327 (2017).mp4": {
+      "title": "Agent 327: Operation Barbershop",
+      "year": 2017,
+      "category": "FR | Démo Action",
+      "overview": "L agent secret hollandais Hendrik IJzerbroot enquête sur un complot louche dans un salon de coiffure.",
+      "rating": 7.3,
+      "poster": "https://upload.wikimedia.org/wikipedia/commons/6/67/Agent_327_poster.jpg",
+      "backdrop": "https://peach.blender.org/wp-content/uploads/title-anims.jpg",
+      "director": "Hjalti Hjalmarsson",
+      "cast": "Hendrik IJzerbroot, Boris Krellic",
+      "genre": "Action"
+    },
+    "videos/demo/Glass Half (2020).mp4": {
+      "title": "Glass Half",
+      "year": 2020,
+      "category": "FR | Démo Drame",
+      "overview": "Un court-métrage captivant sur la perception du monde et l optimisme au quotidien.",
+      "rating": 6.9,
+      "poster": "https://upload.wikimedia.org/wikipedia/commons/c/c5/Big_buck_bunny_poster_big.jpg",
+      "backdrop": "https://peach.blender.org/wp-content/uploads/title-anims.jpg",
+      "director": "Blender Studio",
+      "cast": "Character A, Character B",
+      "genre": "Drame"
+    }
+  },
+  "shows": {
+    "Demo Series": {
+      "title": "Aventures Animées (Démo)",
+      "category": "FR | Démo Séries",
+      "overview": "Une série de courts métrages animés parfaits pour tester la navigation par saisons et épisodes.",
+      "rating": 8.0,
+      "poster": "https://upload.wikimedia.org/wikipedia/commons/c/c5/Big_buck_bunny_poster_big.jpg",
+      "backdrop": "https://peach.blender.org/wp-content/uploads/title-anims.jpg",
+      "genre": "Animation",
+      "tmdb_id": 999991
+    }
+  },
+  "episodes": {
+    "videos/demo/series/Season 01/Saison 01 - E01 - Pilote.mp4": {
+      "show": "Demo Series",
+      "season": 1,
+      "episode": 1,
+      "title": "Pilote Démo",
+      "overview": "Premier épisode de démonstration."
+    },
+    "videos/demo/series/Season 01/Saison 01 - E02 - Le Retour.mp4": {
+      "show": "Demo Series",
+      "season": 1,
+      "episode": 2,
+      "title": "Le Retour",
+      "overview": "Second épisode de démonstration."
+    }
+  }
+}
