@@ -1,0 +1,11 @@
+config.json
+library.json
+library_demo.json
+tmdb_cache.json
+unmatched_movies.json
+server.log
+thumbs/
+*.pyc
+__pycache__/
+.venv/
+.vscode/

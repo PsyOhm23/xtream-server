@@ -1,0 +1,5 @@
+thumbs/*
+.history/*
+__pycache__/server.cpython-311.pyc
+.vscode/image-comparator/*
+._*

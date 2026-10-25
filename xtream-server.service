@@ -1,0 +1,14 @@
+[Unit]
+Description=Xtream IPTV Python Server
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/xtream-server
+ExecStart=/usr/bin/python3 /home/pi/xtream-server/server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

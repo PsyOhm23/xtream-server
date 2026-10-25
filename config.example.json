@@ -1,0 +1,15 @@
+{
+  "tmdb_api_key": "YOUR_TMDB_API_KEY_HERE",
+  "media_dirs": [
+    "./media/videos"
+  ],
+  "system_dirs": [
+    "./media/system"
+  ],
+  "users": {
+    "admin": "admin",
+    "system": "system",
+    "all": "all",
+    "demo": "demo"
+  }
+}
