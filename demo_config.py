@@ -44,6 +44,7 @@ HERO_MOVIES = [
     {
         "stream_id": 2001,
         "tmdb_id": "45745",
+        "stream": "https://archive.org/download/sintel_cc_by_2010/sintel-2048-stereo.mp4",
         "category_id": "20",
         "year": 2010,
         "duration_secs": 888,
@@ -65,6 +66,7 @@ HERO_MOVIES = [
     {
         "stream_id": 2002,
         "tmdb_id": "133701",
+        "stream": "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
         "category_id": "21",
         "year": 2012,
         "duration_secs": 734,
@@ -86,6 +88,7 @@ HERO_MOVIES = [
     {
         "stream_id": 2003,
         "tmdb_id": "10378",
+        "stream": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
         "category_id": "20",
         "year": 2008,
         "duration_secs": 600,
@@ -107,6 +110,7 @@ HERO_MOVIES = [
     {
         "stream_id": 2004,
         "tmdb_id": "358332",
+        "stream": "https://archive.org/download/CosmosLaundromatFirstCycle/Cosmos%20Laundromat%20-%20First%20Cycle%20%281080p%29.mp4",
         "category_id": "21",
         "year": 2015,
         "duration_secs": 720,
@@ -128,6 +132,7 @@ HERO_MOVIES = [
     {
         "stream_id": 2005,
         "tmdb_id": "593048",
+        "stream": "https://archive.org/download/spring_blenderopenmovie/Spring%20-%20Blender%20Open%20Movie%20-%20YouTube.mp4",
         "category_id": "20",
         "year": 2019,
         "duration_secs": 450,
@@ -149,6 +154,8 @@ HERO_MOVIES = [
     {
         "stream_id": 2006,
         "tmdb_id": "891761",
+        # No stable public file for Sprite Fright. Elephants Dream is another CC-BY Blender film.
+        "stream": "https://archive.org/download/ElephantsDream/ed_1024_512kb.mp4",
         "category_id": "20",
         "year": 2021,
         "duration_secs": 600,
@@ -185,16 +192,10 @@ TITLE_WORDS = {
     },
 }
 
-# Direct playback. One CC-BY file, about 15 minutes, so the player timeline
-# stays usable. The 10-second clips are too short for the app.
-MP4_STREAMS = [
-    "https://archive.org/download/sintel_cc_by_2010/sintel-2048-stereo.mp4",
-]
-
-# Movie and series HLS. Big Buck Bunny on Mux is a finite VOD (about 10 min 34 s).
-HLS_STREAMS = [
-    "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-]
+# Generated movies and episodes rotate through these URLs.
+# Big Buck Bunny on Mux is the model: one finite public stream per title.
+# Heroes above keep their own "stream" and are not taken from this rotation.
+VOD_STREAMS = [hero["stream"] for hero in HERO_MOVIES]
 
 # Live TV only. These are sliding-window HLS lives: no EXT-X-ENDLIST,
 # so the player keeps the "live" UI instead of a VOD progress bar.

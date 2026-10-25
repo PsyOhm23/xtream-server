@@ -30,14 +30,25 @@ def language_for(username):
     return "fr"
 
 
+def stream_extension(url):
+    """Container suffix the app should request for this playback URL."""
+    path = (url or "").split("?", 1)[0].lower()
+    if path.endswith(".m3u8"):
+        return "m3u8"
+    if path.endswith(".mov"):
+        return "mov"
+    return "mp4"
+
+
 def playback_url(route, stream_id, extension):
-    """Live stays on an endless HLS window. VOD mp4 uses the long CC-BY file."""
+    """Live stays on an endless HLS window. Each VOD title keeps its own stream."""
     if route == "live":
         pool = demo_config.LIVE_HLS_STREAMS
-    elif (extension or "").lower() != "mp4":
-        pool = demo_config.HLS_STREAMS
-    else:
-        pool = demo_config.MP4_STREAMS
+        return pool[int(stream_id) % len(pool)]
+    for hero in demo_config.HERO_MOVIES:
+        if int(hero["stream_id"]) == int(stream_id):
+            return hero["stream"]
+    pool = demo_config.VOD_STREAMS
     return pool[int(stream_id) % len(pool)]
 
 
@@ -122,6 +133,7 @@ def _series(lang):
                     episode_id = series_id * 100 + season * 10 + episode
                     ep = _seeded(lang, episode_id, "episode")
                     title = f"{show['title']} - S{season:02d}E{episode:02d} - {ep['title']}"
+                    source = playback_url("series", episode_id, "")
                     rows.append({
                         "stream_id": episode_id,
                         "_identity": f"demo:episode:{episode_id}",
@@ -136,8 +148,8 @@ def _series(lang):
                         "category_id": category["id"],
                         "kind": "episode",
                         "lang": lang,
-                        "container_extension": "mp4",
-                        "path": playback_url("series", episode_id, "mp4"),
+                        "container_extension": stream_extension(source),
+                        "path": source,
                         "direct_source": "",
                         "added": _ADDED,
                         "duration_secs": demo_config.EPISODE_DURATION_SECS,
@@ -218,6 +230,7 @@ def _with_credit(overview):
 
 def _movie_row(stream_id, name, year, category, lang, overview, director, cast, rating, poster, tmdb_id, duration_secs, backdrop=""):
     display = f"{name} ({year})" if year else name
+    source = playback_url("movie", stream_id, "")
     return {
         "stream_id": stream_id,
         "_identity": f"demo:movie:{stream_id}",
@@ -227,8 +240,8 @@ def _movie_row(stream_id, name, year, category, lang, overview, director, cast, 
         "category_id": category["id"],
         "kind": "movie",
         "lang": lang,
-        "container_extension": "mp4",
-        "path": playback_url("movie", stream_id, "mp4"),
+        "container_extension": stream_extension(source),
+        "path": source,
         "direct_source": "",
         "added": _ADDED,
         "duration_secs": int(duration_secs),

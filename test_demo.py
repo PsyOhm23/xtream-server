@@ -14,7 +14,7 @@ class TestDemoCatalog(unittest.TestCase):
         second = demo_generator.build_catalog("demo_fr")
         self.assertEqual(
             [(item["stream_id"], item["name"]) for item in first],
-            [(item["stream_id"], item["name"]) for item in sles films et séries ne poinent econd],
+            [(item["stream_id"], item["name"]) for item in second],
         )
 
     def test_language_follows_the_username(self):
@@ -118,7 +118,7 @@ class TestDemoApi(unittest.TestCase):
         payload = series.get_json()
         self.assertEqual(len(payload["seasons"]), 2)
         self.assertEqual(payload["seasons"][0]["name"], "Season 1")
-        self.assertEqual(len(payload["episodes"]["1"]), 4)
+        self.assertEqual(len(payload["episodes"]["1"]), demo_config.EPISODES_PER_SEASON)
         self.assertEqual(payload["episodes"]["1"][0]["container_extension"], "mp4")
         self.assertEqual(payload["episodes"]["1"][0]["info"]["duration_secs"], 1800)
         self.assertNotIn("tmdb", payload["info"])
@@ -143,21 +143,23 @@ class TestDemoApi(unittest.TestCase):
 
         movie = self.client.get("/movie/demo_fr/demo_fr/2001.mp4")
         self.assertEqual(movie.status_code, 302)
-        self.assertIn(movie.headers["Location"], demo_config.MP4_STREAMS)
+        self.assertEqual(movie.headers["Location"], demo_config.HERO_MOVIES[0]["stream"])
 
-        hls = self.client.get("/movie/demo_fr/demo_fr/2001.m3u8")
-        self.assertEqual(hls.status_code, 302)
-        self.assertIn(hls.headers["Location"], demo_config.HLS_STREAMS)
+        bunny = self.client.get("/movie/demo_fr/demo_fr/2003.mp4")
+        self.assertEqual(bunny.status_code, 302)
+        self.assertEqual(bunny.headers["Location"], demo_config.HERO_MOVIES[2]["stream"])
+        self.assertNotEqual(movie.headers["Location"], bunny.headers["Location"])
 
         filler = self.client.get("/movie/demo_fr/demo_fr/22001.mp4")
         series = self.client.get("/series/demo_en/demo_en/3300111.mp4")
         live = self.client.get("/live/demo_fr/demo_fr/11001.m3u8")
         short = self.client.get("/demo/demo/11101")
         self.assertEqual(filler.status_code, 302)
-        self.assertIn(filler.headers["Location"], demo_config.MP4_STREAMS)
-        self.assertIn(series.headers["Location"], demo_config.MP4_STREAMS)
+        self.assertIn(filler.headers["Location"], demo_config.VOD_STREAMS)
+        self.assertIn(series.headers["Location"], demo_config.VOD_STREAMS)
+        self.assertNotEqual(filler.headers["Location"], movie.headers["Location"])
         self.assertIn(live.headers["Location"], demo_config.LIVE_HLS_STREAMS)
-        self.assertNotIn(live.headers["Location"], demo_config.HLS_STREAMS)
+        self.assertNotIn(live.headers["Location"], demo_config.VOD_STREAMS)
         self.assertEqual(short.status_code, 302)
         self.assertIn(short.headers["Location"], demo_config.LIVE_HLS_STREAMS)
         self.assertEqual(self.client.get("/demo/demo/2001").status_code, 404)
