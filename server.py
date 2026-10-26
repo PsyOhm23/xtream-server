@@ -18,50 +18,98 @@ import media_match
 
 app = Flask(__name__)
 
-# Constants & Paths
-CONFIG_FILE = "config.json"
-CACHE_FILE = "tmdb_cache.json"
+# Constants & Paths. Media directories come only from config.json.
+HERE = os.path.dirname(os.path.abspath(__file__))
+CONFIG_FILE = os.environ.get("XTREAM_CONFIG") or os.path.join(HERE, "config.json")
+EXAMPLE_FILE = "config.example.json"
+CACHE_FILE = os.path.join(HERE, "tmdb_cache.json")
+LIBRARY_TYPES = ("tmdb", "other")
 
-DEFAULT_CONFIG = {
-    "tmdb_api_key": "",
-    "media_dirs": ["./media/videos"],
-    "system_dirs": ["./media/system"],
-    "users": {
-        "admin": "admin",
-        "system": "system",
-        "all": "all",
-        "demo": "demo",
-        "demo_fr": "demo_fr",
-        "demo_en": "demo_en"
-    }
-}
 
-def load_config():
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, "r") as f:
-                return json.load(f)
-        except:
-            pass
-    return DEFAULT_CONFIG
+def _config_help():
+    return (
+        "Create config.json from the example and set your own directories:\n"
+        f"  cp {EXAMPLE_FILE} config.json\n"
+        "\n"
+        "libraries: one entry per directory, with path, type, username and password.\n"
+        "  type tmdb: categories follow genres.\n"
+        "  type other: categories follow the top-level folder.\n"
+        "users: extra accounts that are not tied to one directory, such as all and demo.\n"
+        "Replace every placeholder path. This server has no built-in directories."
+    )
+
+
+def _account_password(passwords, username, password, path):
+    if not isinstance(username, str) or not username or not isinstance(password, str):
+        raise SystemExit(f"{path}: each account needs a username and a password.\n\n{_config_help()}")
+    previous = passwords.get(username)
+    if previous is not None and previous != password:
+        raise SystemExit(f"{path}: username {username} is listed with two different passwords.\n\n{_config_help()}")
+    passwords[username] = password
+
+
+def load_config(path=None):
+    """Read config.json. Missing or incomplete files stop startup with setup steps."""
+    path = path or CONFIG_FILE
+    if not os.path.isfile(path):
+        raise SystemExit(f"Config file not found: {path}\n\n{_config_help()}")
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            loaded = json.load(handle)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"Cannot read {path}: {exc}\n\n{_config_help()}") from exc
+    if not isinstance(loaded, dict):
+        raise SystemExit(f"{path} must be a JSON object.\n\n{_config_help()}")
+    raw_libraries = loaded.get("libraries")
+    if not isinstance(raw_libraries, list):
+        raise SystemExit(f"{path} is missing: libraries\n\n{_config_help()}")
+    passwords = {}
+    libraries = []
+    for item in raw_libraries:
+        if not isinstance(item, dict):
+            raise SystemExit(f"{path}: each library must be an object.\n\n{_config_help()}")
+        folder = item.get("path")
+        kind = item.get("type")
+        if not isinstance(folder, str) or not folder.strip():
+            raise SystemExit(f"{path}: each library needs a path.\n\n{_config_help()}")
+        if kind not in LIBRARY_TYPES:
+            raise SystemExit(f"{path}: library type must be tmdb or other.\n\n{_config_help()}")
+        _account_password(passwords, item.get("username"), item.get("password"), path)
+        libraries.append({
+            "path": folder,
+            "type": kind,
+            "username": item["username"],
+            "password": item["password"],
+        })
+    extra = loaded.get("users", {})
+    if not isinstance(extra, dict):
+        raise SystemExit(f"{path}: users must map each username to a password.\n\n{_config_help()}")
+    for username, password in extra.items():
+        _account_password(passwords, username, password, path)
+    if not passwords:
+        raise SystemExit(f"{path}: add a library account or a user.\n\n{_config_help()}")
+    loaded["libraries"] = libraries
+    loaded["users"] = passwords
+    return loaded
+
 
 config = load_config()
-TMDB_API_KEY = config.get("tmdb_api_key", "")
-MEDIA_DIRS = config.get("media_dirs", ["/media/3To/videos"])
-SYSTEM_DIRS = config.get("system_dirs", ["/media/3To/system/lost"])
-USERS = config.get("users", {
-    "admin": "admin",
-    "system": "system",
-    "all": "all",
-    "demo": "demo",
-    "demo_fr": "demo_fr",
-    "demo_en": "demo_en",
-})
+TMDB_API_KEY = config.get("tmdb_api_key") or ""
+LIBRARIES = config["libraries"]
+USERS = config["users"]
+
+
+def libraries_for_user(username):
+    """Directories this account can see. An account listed on none of them sees them all."""
+    owned = [item for item in LIBRARIES if item["username"] == username]
+    if owned or demo_generator.is_demo_user(username):
+        return owned
+    return list(LIBRARIES)
 
 EXTENSIONS = ['.mp4', '.mkv', '.avi', '.mov', '.m4v', '.m2ts', '.mp3', '.flac']
 LIBRARY_FILES = config.get("library_files", {
     "admin": "library.json",
-    "system": "library.json",
+    "personal": "library.json",
     "all": "library.json",
     "demo": "library_demo.json"
 })
@@ -308,12 +356,17 @@ def stable_category_id(name, kind=None):
     token = f"{kind}:{name}" if kind else name
     return str(int(hashlib.md5(token.encode("utf-8")).hexdigest()[:6], 16))
 
-def load_library(username=None):
+def library_path(username=None):
+    """Library file next to this server. The name comes from config, the place does not."""
     filename = LIBRARY_FILES.get(username, "library.json") if username else "library.json"
-    lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+    lib_path = os.path.join(HERE, filename)
     if not os.path.exists(lib_path):
-        # Fallback to main library.json if specific one missing
-        lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "library.json")
+        lib_path = os.path.join(HERE, "library.json")
+    return lib_path
+
+
+def load_library(username=None):
+    lib_path = library_path(username)
     if not os.path.exists(lib_path):
         return {"movies": {}, "shows": {}, "episodes": {}}
     mtime = os.path.getmtime(lib_path)
@@ -557,10 +610,7 @@ def file_added_stamp(path):
 
 
 def _library_mtime(username=None):
-    filename = LIBRARY_FILES.get(username, "library.json") if username else "library.json"
-    lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
-    if not os.path.exists(lib_path):
-        lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "library.json")
+    lib_path = library_path(username)
     try:
         return os.path.getmtime(lib_path)
     except OSError:
@@ -582,14 +632,10 @@ def show_category_name(record):
     return record.get("genre_category") or "FR | Séries"
 
 
-def _directory_stamp():
-    """Mtimes of media directories. A new file updates its parent folder."""
+def _directory_stamp(username=None):
+    """Mtimes of the directories this account can see. A new file updates its parent folder."""
     stamps = []
-    roots = []
-    if MEDIA_DIRS:
-        roots.append(MEDIA_DIRS[0])
-    if SYSTEM_DIRS:
-        roots.append(SYSTEM_DIRS[0])
+    roots = [item["path"] for item in libraries_for_user(username)]
     for root in roots:
         if not root or not os.path.isdir(root):
             stamps.append((root, None))
@@ -620,7 +666,7 @@ def _store_catalog(videos, categories, tree_stamp, username=None):
 
 
 def _refresh_catalog(username=None):
-    tree_stamp = _directory_stamp()
+    tree_stamp = _directory_stamp(username)
     videos, categories = _build_catalog(username)
     with _catalog_lock:
         _store_catalog(videos, categories, tree_stamp, username)
@@ -637,7 +683,7 @@ def get_categorized_videos(ensure_fresh=False, username=None):
     if not ensure_fresh:
         return _refresh_catalog(username)
     library_mtime = _library_mtime(username)
-    tree_stamp = _directory_stamp()
+    tree_stamp = _directory_stamp(username)
     with _catalog_lock:
         videos = _catalog_cache.get(f"videos_{key}")
         if (
@@ -649,6 +695,55 @@ def get_categorized_videos(ensure_fresh=False, username=None):
     return _refresh_catalog(username)
 
 
+def is_other_video(video):
+    """Type other is grouped by folder. Type tmdb is grouped by genre."""
+    return video.get("source") == "other"
+
+
+def folder_category_name(path, root):
+    """Top folder under a personal library. A file at the root uses the library name."""
+    rel = os.path.relpath(path, root)
+    parts = [part for part in rel.split(os.sep) if part and part != "."]
+    if len(parts) >= 2:
+        return parts[0]
+    return os.path.basename(os.path.abspath(root)) or "Personal"
+
+
+def _file_title(path):
+    return os.path.splitext(os.path.basename(path))[0]
+
+
+def _movie_video(path, root, movie, category_name, source):
+    key = media_key(path, root)
+    if movie:
+        meta = meta_from_library(movie)
+        name = display_movie_name(movie, _file_title(path))
+        tmdb_id = movie.get("tmdb_id")
+        identity = f"tmdb:{tmdb_id}" if tmdb_id else key
+    else:
+        meta = empty_meta()
+        name = _file_title(path)
+        identity = key if source == "tmdb" else f"other:{os.path.abspath(path)}"
+    stream_key = key if source == "tmdb" else os.path.abspath(path)
+    return {
+        "stream_id": numeric_id(stream_key),
+        "_identity": identity,
+        "name": name,
+        "title": name,
+        "category_name": category_name,
+        "category_id": stable_category_id(category_name, "vod"),
+        "kind": "movie",
+        "source": source,
+        "container_extension": container_extension(path),
+        "path": path,
+        "meta": meta,
+        "series_id": "",
+        "season": None,
+        "episode": None,
+        "added": file_added_stamp(path),
+    }
+
+
 def _build_catalog(username=None):
     if demo_generator.is_demo_user(username):
         videos = demo_generator.build_catalog(username)
@@ -658,23 +753,78 @@ def _build_catalog(username=None):
         return assign_stream_ids(videos), categories
 
     library = load_library(username)
+    lookup = movie_lookup(library)
+    episode_keys = set((library.get("episodes") or {}).keys())
+    granted = libraries_for_user(username)
+    tmdb_roots = [item["path"] for item in granted if item["type"] == "tmdb"]
+    other_roots = [item["path"] for item in granted if item["type"] == "other"]
     videos = []
 
-    std_dir = MEDIA_DIRS[0] if MEDIA_DIRS else ""
+    for root in tmdb_roots:
+        if not root:
+            continue
+        for path in list_videos(root):
+            key = media_key(path, root)
+            if key in episode_keys:
+                continue
+            movie = (library.get("movies") or {}).get(key)
+            if not movie:
+                movie = movie_record_for_name(lookup, os.path.basename(path))
+            category_name = movie_category_name(movie) if movie else "FR | Inconnu"
+            videos.append(_movie_video(path, root, movie, category_name, "tmdb"))
+
+    for show_key, show in (library.get("shows") or {}).items():
+        show_title = show.get("title") or "Series"
+        cat_name = show_category_name(show)
+        meta = meta_from_library(show)
+        series_id = str(show.get("tmdb_id") or stable_category_id(show_title))
+        for rel, episode in (library.get("episodes") or {}).items():
+            if episode.get("show") != show_key:
+                continue
+            full_path = ""
+            for root in tmdb_roots:
+                candidate = os.path.join(root, rel) if root else rel
+                if os.path.exists(candidate):
+                    full_path = candidate
+                    break
+            if not full_path:
+                continue
+            season = int(episode.get("season") or 1)
+            episode_num = int(episode.get("episode") or 1)
+            episode_title = episode.get("title") or f"Episode {episode_num}"
+            name = f"{show_title} - S{season:02d}E{episode_num:02d} - {episode_title}"
+            videos.append({
+                "stream_id": numeric_id(rel),
+                "_identity": rel,
+                "name": name,
+                "title": name,
+                "category_name": cat_name,
+                "category_id": stable_category_id(cat_name, "series"),
+                "kind": "episode",
+                "source": "tmdb",
+                "container_extension": container_extension(full_path),
+                "path": full_path,
+                "meta": meta,
+                "series_id": series_id,
+                "season": season,
+                "episode": episode_num,
+                "episode_num": episode_num,
+                "episode_title": episode_title,
+                "added": file_added_stamp(full_path),
+            })
+
+    for root in other_roots:
+        if not root:
+            continue
+        for path in list_videos(root):
+            category_name = folder_category_name(path, root)
+            videos.append(_movie_video(path, root, None, category_name, "other"))
 
     videos = expose_each_copy(videos)
     categories = {}
     for video in videos:
         categories.setdefault(video["category_name"], []).append(video)
     return assign_stream_ids(videos), categories
-
-def filter_videos_for_user(videos, username, password):
-    if username == "system":
-        return [v for v in videos if "/system/lost" in v["path"]]
-    elif username == "admin":
-        return [v for v in videos if "/system/lost" not in v["path"]]
-    return videos
-
 
 def ordered_categories(videos, kinds):
     """Category rows. Demo ids stay in config order. Real libraries stay alphabetical."""
@@ -734,12 +884,12 @@ def get_php():
         return jsonify({"error": "Unauthorized"}), 401
         
     videos, _ = get_categorized_videos(ensure_fresh=True, username=username)
-    user_videos = filter_videos_for_user(videos, username, password)
-    
-    if ptype == "media":
-        user_videos = [v for v in user_videos if "/system/lost" not in v["path"]]
-    elif ptype == "system":
-        user_videos = [v for v in user_videos if "/system/lost" in v["path"]]
+    user_videos = videos
+
+    if ptype == "tmdb":
+        user_videos = [v for v in user_videos if not is_other_video(v)]
+    elif ptype == "other":
+        user_videos = [v for v in user_videos if is_other_video(v)]
         
     m3u = "#EXTM3U\n"
     for v in user_videos:
@@ -761,7 +911,7 @@ def player_api():
         return jsonify(xtream_auth_payload(username))
 
     videos, _ = get_categorized_videos(ensure_fresh=True, username=username)
-    user_videos = filter_videos_for_user(videos, username, password)
+    user_videos = videos
 
     if action == "get_live_categories":
         if not demo_generator.is_demo_user(username):
@@ -1284,18 +1434,20 @@ def vod_info_payload(video):
 def _match_client():
     global _tmdb_client
     if _tmdb_client is None:
-        cache_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tmdb_match_cache.json")
+        cache_path = os.path.join(HERE, "tmdb_match_cache.json")
         _tmdb_client = media_match.TMDBClient(TMDB_API_KEY, cache_path)
     return _tmdb_client
 
 
-def _write_library(library):
-    temporary = LIBRARY_FILE + ".tmp"
+def _write_library(library, username=None):
+    path = library_path(username)
+    temporary = path + ".tmp"
     with open(temporary, "w", encoding="utf-8") as handle:
         json.dump(library, handle, ensure_ascii=False, indent=2)
-    os.replace(temporary, LIBRARY_FILE)
-    _library_cache["mtime"] = os.path.getmtime(LIBRARY_FILE)
-    _library_cache["data"] = library
+    os.replace(temporary, path)
+    cache_key = f"{username}_{path}"
+    _library_cache[f"{cache_key}_mtime"] = os.path.getmtime(path)
+    _library_cache[cache_key] = library
 
 
 def _apply_movie_record(video, record):
@@ -1310,12 +1462,22 @@ def scrape_unknown_movie(video):
     """Identify one unindexed movie when its detail page is opened."""
     if video.get("kind") != "movie":
         return
-    if "/system/lost" in video.get("path", ""):
+    if is_other_video(video):
         return
     if video.get("meta", {}).get("id"):
         return
-    root = MEDIA_DIRS[0] if MEDIA_DIRS else ""
-    if not root or not video["path"].startswith(root):
+    root = ""
+    for item in libraries_for_user(None):
+        if item["type"] != "tmdb":
+            continue
+        folder = os.path.abspath(item["path"])
+        try:
+            if os.path.commonpath([folder, os.path.abspath(video["path"])]) == folder:
+                root = item["path"]
+                break
+        except ValueError:
+            continue
+    if not root:
         return
     key = media_key(video["path"], root)
     if key in _scrape_failed:
@@ -1343,7 +1505,8 @@ def scrape_unknown_movie(video):
 
 
 if __name__ == "__main__":
-    print(f"Server starting with media dirs: {MEDIA_DIRS}")
+    for item in LIBRARIES:
+        print(f"Library {item['type']}: {item['path']} ({item['username']})")
     try:
         _refresh_catalog()
     except Exception as exc:

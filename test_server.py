@@ -1,7 +1,11 @@
 import os
 import sys
 import unittest
-sys.path.append("/home/pi/xtream-server")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+os.environ.setdefault(
+    "XTREAM_CONFIG",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.example.json"),
+)
 import organize_library
 import server
 
@@ -230,6 +234,83 @@ class TestXtreamCleaningAndTMDB(unittest.TestCase):
         self.assertIn("direct_source", ep)
         self.assertEqual(ep["info"]["id"], 12609)
         self.assertEqual(ep["info"]["movie_image"], "https://image.tmdb.org/t/p/w500/ea8V.jpg")
+
+    def test_tmdb_library_uses_genres_and_personal_library_uses_folders(self):
+        import tempfile
+        from unittest import mock
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmdb = os.path.join(tmp, "tmdb")
+            personal = os.path.join(tmp, "personal")
+            os.makedirs(os.path.join(tmdb, "films"))
+            os.makedirs(os.path.join(personal, "Vacances", "2024"))
+            movie = os.path.join(tmdb, "films", "Dune (2024).mkv")
+            episode = os.path.join(tmdb, "series", "Show", "episode.mkv")
+            clip = os.path.join(personal, "Vacances", "2024", "ete.mp4")
+            os.makedirs(os.path.dirname(episode))
+            for path in (movie, episode, clip):
+                with open(path, "wb") as handle:
+                    handle.write(b"a")
+            movie_key = server.media_key(movie, tmdb)
+            episode_key = server.media_key(episode, tmdb)
+            library = {
+                "movies": {
+                    movie_key: {
+                        "tmdb_id": 693134,
+                        "title": "Dune",
+                        "year": 2024,
+                        "genres": ["Animation"],
+                    },
+                },
+                "shows": {
+                    "series/Show": {
+                        "tmdb_id": 12609,
+                        "title": "Dragon Ball",
+                        "genres": ["Animation"],
+                    },
+                },
+                "episodes": {
+                    episode_key: {
+                        "show": "series/Show",
+                        "season": 1,
+                        "episode": 1,
+                        "title": "Bulma",
+                    },
+                },
+            }
+            libraries = [
+                {"path": tmdb, "type": "tmdb", "username": "admin", "password": "admin"},
+                {"path": personal, "type": "other", "username": "personal", "password": "personal"},
+            ]
+            with mock.patch.object(server, "LIBRARIES", libraries), \
+                    mock.patch.object(server, "load_library", return_value=library):
+                admin_videos, _admin_categories = server._build_catalog("admin")
+                other_videos, _other_categories = server._build_catalog("personal")
+                videos, _categories = server._build_catalog("all")
+
+        by_kind = {}
+        for video in videos:
+            by_kind.setdefault(video["kind"], []).append(video)
+        movies = {video["name"]: video for video in by_kind["movie"]}
+        self.assertEqual(movies["Dune (2024)"]["category_name"], "FR | Animation")
+        self.assertEqual(movies["Dune (2024)"]["source"], "tmdb")
+        self.assertEqual(movies["ete"]["category_name"], "Vacances")
+        self.assertEqual(movies["ete"]["source"], "other")
+        self.assertNotIn(episode_key, {server.media_key(video["path"], tmdb) for video in by_kind["movie"] if video["source"] == "tmdb"})
+        self.assertEqual(len(by_kind["episode"]), 1)
+        self.assertEqual(by_kind["episode"][0]["category_name"], "FR | Animation")
+        self.assertEqual(by_kind["episode"][0]["source"], "tmdb")
+        self.assertTrue(all(video["source"] == "tmdb" for video in admin_videos))
+        self.assertEqual([video["name"] for video in other_videos], ["ete"])
+
+    def test_missing_config_explains_how_to_create_it(self):
+        with self.assertRaises(SystemExit) as raised:
+            server.load_config("/no/such/xtream-config.json")
+        message = str(raised.exception)
+        self.assertIn("config.example.json", message)
+        self.assertIn("libraries", message)
+        self.assertIn("type tmdb", message)
+        self.assertIn("type other", message)
 
 if __name__ == "__main__":
     unittest.main()

@@ -7,9 +7,8 @@ A lightweight, high-performance Flask-based Xtream Codes API compatible IPTV ser
 - **Xtream Codes API Compatible**: Works out of the box with standard IPTV players (IPTV Smarters, Tivimate, TiviX, custom Flutter apps, etc.).
 - **Virtualized Categories**: Maps media files to clean, virtual categories prefixed with `FR |` without altering your physical folder structure.
 - **Multi-Account Isolation**:
-  - `admin`: Standard media library.
-  - `system`: System/lost directory media.
-  - `all`: Combined media source.
+  - Each directory has its own account. `type: tmdb` is categorized by genre. `type: other` is categorized by folder.
+  - `all`: Combined view of every directory. It is not tied to one folder.
   - `demo`: Dedicated mock demonstration library (`library_demo.json`) with working test streams (ideal for App Store / Play Store review submissions).
 - **TMDB Integration**: Automatic metadata scraping (posters, backdrops, cast, ratings, overviews) with local JSON caching.
 - **Systemd Integration**: Persistent background execution with auto-restart capabilities.
@@ -36,11 +35,21 @@ A lightweight, high-performance Flask-based Xtream Codes API compatible IPTV ser
    ```json
    {
        "tmdb_api_key": "YOUR_TMDB_API_KEY",
-       "media_dirs": ["/path/to/your/videos"],
-       "system_dirs": ["/path/to/your/system"],
+       "libraries": [
+           {
+               "path": "/path/to/tmdb-library",
+               "type": "tmdb",
+               "username": "admin",
+               "password": "admin"
+           },
+           {
+               "path": "/path/to/other-library",
+               "type": "other",
+               "username": "personal",
+               "password": "personal"
+           }
+       ],
        "users": {
-           "admin": "admin",
-           "system": "system",
            "all": "all",
            "demo": "demo"
        }

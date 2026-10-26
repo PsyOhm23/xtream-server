@@ -1,6 +1,12 @@
 import base64
+import os
 import unittest
 from datetime import datetime, timezone
+
+os.environ.setdefault(
+    "XTREAM_CONFIG",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.example.json"),
+)
 
 import demo_config
 import demo_epg

@@ -29,9 +29,9 @@ def grab_frame(source, dest, seeks, scale=None, quality="3"):
 
 
 def generate_all_thumbs():
-    print("Starting thumbnail generation for system/lost only...")
+    print("Starting thumbnail generation for personal media only...")
     videos, _ = get_categorized_videos()
-    videos = [item for item in videos if "/system/lost" in item["path"]]
+    videos = [item for item in videos if item.get("source") == "other"]
     valid_ids = {str(item["stream_id"]) for item in videos}
 
     removed = 0

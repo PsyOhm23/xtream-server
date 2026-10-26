@@ -4,6 +4,7 @@ Dry-run is the default. Pass --apply to probe files and write the sidecars.
 """
 
 import argparse
+import json
 import os
 import sys
 
@@ -26,12 +27,41 @@ def iter_videos(root):
             yield os.path.join(dirpath, filename)
 
 
+def configured_media_root():
+    """First TMDB directory from config.json. There is no built-in path."""
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+    if not os.path.isfile(config_path):
+        return ""
+    try:
+        with open(config_path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return ""
+    libraries = data.get("libraries") if isinstance(data, dict) else None
+    if not isinstance(libraries, list):
+        return ""
+    for item in libraries:
+        if isinstance(item, dict) and item.get("type") == "tmdb" and isinstance(item.get("path"), str):
+            return item["path"]
+    return ""
+
+
 def main():
     parser = argparse.ArgumentParser(description="Probe videos and write a JSON sidecar.")
-    parser.add_argument("--root", default="/media/3To/videos")
+    parser.add_argument("--root", help="Library directory. Defaults to the first tmdb library in config.json.")
     parser.add_argument("--apply", action="store_true", help="Probe files and write sidecars")
     parser.add_argument("--limit", type=int, default=0, help="Max files to consider, 0 means all")
     args = parser.parse_args()
+    root = args.root or configured_media_root()
+    if not root:
+        print(
+            "No library directory.\n"
+            "Pass --root /your/library, or add a tmdb library in config.json.\n"
+            "  cp config.example.json config.json",
+            file=sys.stderr,
+        )
+        return 1
+    args.root = root
 
     if not os.path.isdir(args.root):
         print(f"media root not found: {args.root}", file=sys.stderr)

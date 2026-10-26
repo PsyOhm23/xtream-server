@@ -20,6 +20,25 @@ GENERIC_EPISODE = re.compile(r"(?i)^(episode|épisode|ep)\s*\d+$")
 DEFAULT_API_KEY = ""
 
 
+def configured_media_root():
+    """First TMDB directory from config.json. There is no built-in path."""
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+    if not os.path.isfile(config_path):
+        return ""
+    try:
+        with open(config_path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return ""
+    libraries = data.get("libraries") if isinstance(data, dict) else None
+    if not isinstance(libraries, list):
+        return ""
+    for item in libraries:
+        if isinstance(item, dict) and item.get("type") == "tmdb" and isinstance(item.get("path"), str):
+            return item["path"]
+    return ""
+
+
 def load_api_key():
     if os.environ.get("TMDB_API_KEY"):
         return os.environ["TMDB_API_KEY"]
@@ -565,12 +584,22 @@ def library_has_entries(path):
 
 def main():
     parser = argparse.ArgumentParser(description="Organize the video library from certain TMDB matches.")
-    parser.add_argument("--root", default="/Volumes/3To/videos")
+    parser.add_argument("--root", help="Library directory. Defaults to the first tmdb library in config.json.")
     parser.add_argument("--apply", action="store_true", help="Rename files and write library.json")
     parser.add_argument("--index", action="store_true", help="Write library.json from current paths, without renaming")
     parser.add_argument("--limit", type=int, default=0, help="Max movies to identify, 0 means all")
     parser.add_argument("--only", choices=["all", "movies", "series"], default="all")
     args = parser.parse_args()
+    root = args.root or configured_media_root()
+    if not root:
+        print(
+            "No library directory.\n"
+            "Pass --root /your/library, or add a tmdb library in config.json.\n"
+            "  cp config.example.json config.json",
+            file=sys.stderr,
+        )
+        return 1
+    args.root = root
 
     if not os.path.isdir(args.root):
         print(f"media root not found: {args.root}", file=sys.stderr)

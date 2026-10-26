@@ -1,14 +1,20 @@
 {
   "tmdb_api_key": "YOUR_TMDB_API_KEY_HERE",
-  "media_dirs": [
-    "./media/videos"
-  ],
-  "system_dirs": [
-    "./media/system"
+  "libraries": [
+    {
+      "path": "/path/to/tmdb-library",
+      "type": "tmdb",
+      "username": "admin",
+      "password": "admin"
+    },
+    {
+      "path": "/path/to/other-library",
+      "type": "other",
+      "username": "personal",
+      "password": "personal"
+    }
   ],
   "users": {
-    "admin": "admin",
-    "system": "system",
     "all": "all",
     "demo": "demo",
     "demo_fr": "demo_fr",
@@ -16,7 +22,7 @@
   },
   "library_files": {
     "admin": "library.json",
-    "system": "library.json",
+    "personal": "library.json",
     "all": "library.json",
     "demo": "library_demo.example.json"
   }
