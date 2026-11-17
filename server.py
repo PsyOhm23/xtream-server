@@ -859,7 +859,7 @@ def live_stream_items(videos, category_id):
             "name": video["name"],
             "stream_type": "live",
             "stream_id": video["stream_id"],
-            "stream_icon": (video.get("meta") or {}).get("poster") or "",
+            "stream_icon": absolute_url((video.get("meta") or {}).get("poster") or ""),
             "epg_channel_id": video.get("epg_channel_id") or f"ch_{video['stream_id']}",
             "added": video.get("added") or "0",
             "category_id": video["category_id"],
@@ -1087,6 +1087,18 @@ def _thumb_path(name):
     return path
 
 
+def absolute_url(url):
+    """Turn a root-relative demo-art path into an absolute URL. Remote URLs stay as they are."""
+    if not url:
+        return ""
+    text = str(url)
+    if text.startswith(("http://", "https://")):
+        return text
+    if text.startswith("/"):
+        return f"http://{request.host}{text}"
+    return text
+
+
 def thumb_url(stream_id):
     """Absolute URL of the small generated poster, when that file exists."""
     if not _thumb_path(str(stream_id)):
@@ -1110,6 +1122,20 @@ def serve_thumb(stream_id):
         name = f"{name}_backdrop"
     path = _thumb_path(name)
     if not path:
+        return "Not Found", 404
+    return send_file(path, mimetype="image/jpeg", conditional=True)
+
+
+_DEMO_ART_KINDS = {"movies", "series", "backdrops"}
+
+
+@app.route("/demo-art/<kind>/<filename>")
+def serve_demo_art(kind, filename):
+    """Fictional posters and backdrops for the demo catalog."""
+    if kind not in _DEMO_ART_KINDS or not re.fullmatch(r"[a-z0-9_]+\.jpe?g", filename):
+        return "Not Found", 404
+    path = os.path.join(HERE, "demo_art", kind, filename)
+    if not os.path.isfile(path):
         return "Not Found", 404
     return send_file(path, mimetype="image/jpeg", conditional=True)
 
@@ -1154,7 +1180,7 @@ def category_ids_for(category_id):
 
 def episode_xtream_info(video, meta):
     """Episode info block for get_series_info, with sidecar tech details when present."""
-    poster = video.get("episode_image") or meta.get("poster") or ""
+    poster = absolute_url(video.get("episode_image") or meta.get("poster") or "")
     plot = video.get("episode_plot") or meta.get("overview") or ""
     tmdb_id = meta.get("id") or 0
     try:
@@ -1195,8 +1221,8 @@ def series_info_payload(episodes):
     meta = episodes[0]["meta"]
     series_name = meta.get("title") or "Series"
     release = meta.get("release_date") or ""
-    poster = meta.get("poster") or ""
-    backdrop = meta.get("backdrop") or ""
+    poster = absolute_url(meta.get("poster") or "")
+    backdrop = absolute_url(meta.get("backdrop") or "")
     tmdb_id = meta.get("id") or 0
     category_id = episodes[0]["category_id"]
     last_modified = max((video.get("added") or "0") for video in episodes)
@@ -1285,7 +1311,7 @@ def vod_stream_item(video, number):
         "name": video["name"],
         "stream_type": "movie",
         "stream_id": video["stream_id"],
-        "stream_icon": meta.get("poster") or thumb_url(video["stream_id"]),
+        "stream_icon": absolute_url(meta.get("poster") or "") or thumb_url(video["stream_id"]),
         "rating": str(meta.get("rating") or "0"),
         "rating_5based": rating_5based(meta.get("rating")),
         "added": video.get("added") or "0",
@@ -1305,7 +1331,7 @@ def series_list_item(video, number):
     meta = video["meta"]
     series_name = meta.get("title") or "Series"
     release = meta.get("release_date") or ""
-    backdrop = meta.get("backdrop") or ""
+    backdrop = absolute_url(meta.get("backdrop") or "")
     try:
         series_id = int(video["series_id"])
     except (TypeError, ValueError):
@@ -1315,7 +1341,7 @@ def series_list_item(video, number):
         "num": number,
         "name": series_name,
         "series_id": series_id,
-        "cover": meta.get("poster") or "",
+        "cover": absolute_url(meta.get("poster") or ""),
         "plot": meta.get("overview") or "",
         "cast": meta.get("cast") or "",
         "director": meta.get("director") or "",
@@ -1375,8 +1401,8 @@ def duration_secs(path):
 def vod_info_payload(video):
     meta = video["meta"]
     tmdb_id = meta.get("id") or 0
-    poster = meta.get("poster") or thumb_url(video["stream_id"])
-    backdrop = meta.get("backdrop") or backdrop_url(video["stream_id"])
+    poster = absolute_url(meta.get("poster") or "") or thumb_url(video["stream_id"])
+    backdrop = absolute_url(meta.get("backdrop") or "") or backdrop_url(video["stream_id"])
     plot = meta.get("overview") or ""
     cast = meta.get("cast") or ""
     seconds = video.get("duration_secs") or None

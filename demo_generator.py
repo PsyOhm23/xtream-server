@@ -103,7 +103,8 @@ def _generated_movies(lang):
                 director=fields["director"],
                 cast=fields["cast"],
                 rating=fields["rating"],
-                poster=_poster("movie", stream_id),
+                poster=_pick(_MOVIE_POSTERS[category["id"]], stream_id),
+                backdrop=_pick(_BACKDROPS[category["id"]], stream_id),
                 tmdb_id=0,
                 duration_secs=fields["duration_secs"],
             ))
@@ -116,6 +117,8 @@ def _series(lang):
         for index in range(1, demo_config.SERIES_PER_CAT + 1):
             series_id = 30000 + int(category["id"]) * 100 + index
             show = _seeded(lang, series_id, "series")
+            poster = _pick(_SERIES_POSTERS[category["id"]], series_id)
+            backdrop = _pick(_SERIES_BACKDROPS[category["id"]], series_id)
             show_meta = _meta(
                 title=show["title"],
                 overview=show["overview"],
@@ -123,8 +126,8 @@ def _series(lang):
                 cast=show["cast"],
                 rating=show["rating"],
                 year=show["year"],
-                poster=_poster("series", series_id),
-                backdrop=_backdrop(series_id),
+                poster=poster,
+                backdrop=backdrop,
                 genre=category[lang],
                 tmdb_id=0,
             )
@@ -142,7 +145,7 @@ def _series(lang):
                         "episode_title": ep["title"],
                         "episode_num": episode,
                         "episode_plot": ep["overview"],
-                        "episode_image": _poster("episode", episode_id),
+                        "episode_image": poster,
                         "episode_rating": ep["rating"],
                         "category_name": category[lang],
                         "category_id": category["id"],
@@ -189,7 +192,7 @@ def _live_channels(lang):
                     rating="0",
                     year="",
                     poster=_channel_logo(stream_id),
-                    backdrop=_backdrop(stream_id),
+                    backdrop=_pick(_ALL_BACKDROPS, stream_id),
                     genre=category[lang],
                     tmdb_id=0,
                 ),
@@ -253,7 +256,7 @@ def _movie_row(stream_id, name, year, category, lang, overview, director, cast, 
             rating=rating,
             year=year,
             poster=poster,
-            backdrop=backdrop or _backdrop(stream_id),
+            backdrop=backdrop,
             genre=category[lang],
             tmdb_id=tmdb_id,
         ),
@@ -311,12 +314,38 @@ def _category(categories, category_id):
     return categories[0]
 
 
-def _poster(kind, stream_id):
-    return f"https://picsum.photos/seed/{kind}_{stream_id}/400/600"
+# Fictional key art served by /demo-art. Eight posters per movie category,
+# four per series category. Heroes keep their real Blender posters.
+_MOVIE_POSTERS = {
+    "20": [f"/demo-art/movies/anim_{index:02d}.jpg" for index in range(1, 9)],
+    "21": [f"/demo-art/movies/scifi_{index:02d}.jpg" for index in range(1, 9)],
+    "22": [f"/demo-art/movies/thriller_{index:02d}.jpg" for index in range(1, 9)],
+    "23": [f"/demo-art/movies/doc_{index:02d}.jpg" for index in range(1, 9)],
+}
+_SERIES_POSTERS = {
+    "30": [f"/demo-art/series/original_{index:02d}.jpg" for index in range(1, 5)],
+    "31": [f"/demo-art/series/mystery_{index:02d}.jpg" for index in range(1, 5)],
+    "32": [f"/demo-art/series/adventure_{index:02d}.jpg" for index in range(1, 5)],
+    "33": [f"/demo-art/series/tech_{index:02d}.jpg" for index in range(1, 5)],
+}
+_BACKDROPS = {
+    "20": [f"/demo-art/backdrops/anim_{index:02d}.jpg" for index in range(1, 3)],
+    "21": [f"/demo-art/backdrops/scifi_{index:02d}.jpg" for index in range(1, 3)],
+    "22": [f"/demo-art/backdrops/thriller_{index:02d}.jpg" for index in range(1, 3)],
+    "23": [f"/demo-art/backdrops/doc_{index:02d}.jpg" for index in range(1, 3)],
+}
+_SERIES_BACKDROPS = {
+    "30": _BACKDROPS["20"],
+    "31": _BACKDROPS["22"],
+    "32": _BACKDROPS["23"],
+    "33": _BACKDROPS["21"],
+}
+_ALL_BACKDROPS = [path for pool in _BACKDROPS.values() for path in pool]
 
 
-def _backdrop(stream_id):
-    return f"https://picsum.photos/seed/bg_{stream_id}/1280/720"
+def _pick(paths, stream_id):
+    """Stable art choice. The same id always gets the same file."""
+    return paths[(int(stream_id) - 1) % len(paths)]
 
 
 def _channel_logo(stream_id):

@@ -50,7 +50,10 @@ class TestDemoCatalog(unittest.TestCase):
         generated = movies[6:]
         self.assertEqual(len(generated), len(demo_config.VOD_CATEGORIES) * demo_config.MOVIES_PER_CAT)
         self.assertTrue(all(item["meta"]["id"] == 0 for item in generated))
-        self.assertTrue(all("/seed/movie_" in item["meta"]["poster"] for item in generated))
+        self.assertTrue(all(item["meta"]["poster"].startswith("/demo-art/movies/") for item in generated))
+        self.assertTrue(all(item["meta"]["backdrop"].startswith("/demo-art/backdrops/") for item in generated))
+        animation = [item for item in generated if item["category_id"] == "20"]
+        self.assertEqual(len({item["meta"]["poster"] for item in animation}), len(animation))
         allowed = set(demo_config.TITLE_WORDS["fr"]["adjectives"] + demo_config.TITLE_WORDS["fr"]["nouns"])
         for item in generated:
             parts = item["meta"]["title"].split()
@@ -68,6 +71,8 @@ class TestDemoCatalog(unittest.TestCase):
         self.assertEqual(len(episodes), demo_config.SEASONS_PER_SERIES * demo_config.EPISODES_PER_SEASON)
         self.assertEqual(episodes[0]["duration_secs"], 1800)
         self.assertEqual(episodes[0]["container_extension"], "mp4")
+        self.assertTrue(episodes[0]["meta"]["poster"].startswith("/demo-art/series/"))
+        self.assertEqual(episodes[0]["episode_image"], episodes[0]["meta"]["poster"])
 
 
 class TestDemoApi(unittest.TestCase):
@@ -118,7 +123,17 @@ class TestDemoApi(unittest.TestCase):
         self.assertTrue(body["info"]["backdrop_path"][0].startswith("https://image.tmdb.org/t/p/"))
 
         plain = self.client.get("/player_api.php?username=demo&password=demo&action=get_vod_info&vod_id=22001")
-        self.assertNotIn("tmdb_id", plain.get_json()["info"])
+        plain_info = plain.get_json()["info"]
+        self.assertNotIn("tmdb_id", plain_info)
+        self.assertTrue(plain_info["movie_image"].startswith("http://localhost/demo-art/movies/"))
+        art = self.client.get("/demo-art/movies/anim_01.jpg")
+        try:
+            self.assertEqual(art.status_code, 200)
+            self.assertEqual(art.mimetype, "image/jpeg")
+            self.assertGreater(len(art.get_data()), 1000)
+        finally:
+            art.close()
+        self.assertEqual(self.client.get("/demo-art/movies/../server.py").status_code, 404)
 
         series = self.client.get("/player_api.php?username=demo_en&password=demo_en&action=get_series_info&series_id=33001")
         payload = series.get_json()
