@@ -1537,4 +1537,12 @@ if __name__ == "__main__":
         _refresh_catalog()
     except Exception as exc:
         print(f"Initial catalog build failed: {exc}")
-    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
+    port = int(os.environ.get("XTREAM_PORT", os.environ.get("PORT", 5050)))
+    try:
+        app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
+    except OSError as exc:
+        if "Address already in use" in str(exc) and port != 5050:
+            print(f"Port {port} in use, falling back to 5050...")
+            app.run(host="0.0.0.0", port=5050, debug=False, threaded=True)
+        else:
+            raise
