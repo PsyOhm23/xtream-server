@@ -204,3 +204,132 @@ LIVE_HLS_STREAMS = [
     "https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8",
     "https://demo.unified-streaming.com/k8s/live/stable/scte35.isml/.m3u8",
 ]
+
+# Curated showcase series keyed by series_id so the first series in the default
+# category always renders realistic copy and avoids TMDB collisions.
+HERO_SERIES = {
+    33201: {
+        "year": 2024,
+        "rating": "8.4",
+        "fr": {
+            "title": "Crête boréale",
+            "overview": "Une équipe de photographes traverse les hauts plateaux nordiques, entre refuges isolés et nuits sous les aurores.",
+            "director": "Claire Moreau",
+            "cast": "Camille Laurent, Julien Mercier, Nadia Benali",
+            "episodes": {
+                1: [
+                    ("Camp de base", "L'équipe installe son premier bivouac au pied du massif avant la tombée de la nuit."),
+                    ("La ligne de crête", "Un vent glacial impose un changement d'itinéraire le long des arêtes enneigées."),
+                    ("Lumière d'altitude", "À l'aube, les nuages se dissipent et dévoilent la vallée glaciaire en contrebas."),
+                    ("Refuge du col", "Une tempête force les voyageurs à partager un refuge avec deux glaciologues."),
+                    ("Piste des fjords", "La descente vers la côte ouvre sur des eaux calmes où dérivent les premiers blocs de glace."),
+                    ("Aurores d'hiver", "La dernière nuit en altitude offre un ciel dégagé et une aurore boréale inattendue."),
+                ],
+                2: [
+                    ("Retour au nord", "Un an plus tard, l'expédition repart vers les îles les plus reculées de l'archipel."),
+                    ("Brume matinale", "La traversée en bateau s'avance lentement dans un brouillard épais jusqu'au mouillage."),
+                    ("Sentier oublié", "Une vieille carte maritime mène l'équipe vers un phare abandonné sur la falaise."),
+                    ("Marée haute", "Il faut remonter le matériel avant que la mer ne coupe l'accès à la presqu'île."),
+                    ("Horizon polaire", "Les journées raccourcissent tandis que la lumière rasante transforme le paysage."),
+                    ("Dernier bivouac", "Avant le retour, l'équipe rassemble ses carnets et ses plus belles images du voyage."),
+                ],
+            },
+        },
+        "en": {
+            "title": "Boreal Ridge",
+            "overview": "A photojournalist team crosses remote northern ridges, documenting mountain shelters and shifting winter light.",
+            "director": "Claire Moreau",
+            "cast": "Hannah Reid, Liam Bennett, Maya Patel",
+            "episodes": {
+                1: [
+                    ("Base Camp", "The team pitches its first camp beneath the ridge as twilight settles over the valley."),
+                    ("The Ridge Line", "Rising winds force a detour along the narrow rocky spine above the treeline."),
+                    ("High Altitude Light", "At sunrise, low clouds clear to reveal the glacial basin stretching below."),
+                    ("Pass Shelter", "An early snowstorm brings the crew together with two field researchers in a stone hut."),
+                    ("Fjord Trail", "Descending toward the coast opens onto quiet waters dotted with drifting ice."),
+                    ("Winter Aurora", "On the final night at altitude, clear skies reward the crew with green auroras."),
+                ],
+                2: [
+                    ("Back North", "One year later, the crew sets out again toward the outer islands of the archipelago."),
+                    ("Morning Mist", "The supply boat threads through thick coastal fog on its way to the anchorage."),
+                    ("Forgotten Path", "An archival sea chart leads the photographers to a weathered cliffside lighthouse."),
+                    ("High Tide", "The team races the rising water to carry its gear off the tidal headland."),
+                    ("Polar Horizon", "Shorter days bathe the snowfields in long, amber dusk light."),
+                    ("Final Camp", "Before heading home, the crew reviews its field notes and favorite frames from the journey."),
+                ],
+            },
+        },
+    },
+}
+
+# Deterministic curated summaries replacing random Faker paragraphs across demo entries.
+DEMO_OVERVIEWS = {
+    "fr": {
+        "movie": [
+            "Sur une côte battue par les vents, un archiviste retrouve un enregistrement qui bouleverse l'histoire de sa ville.",
+            "Deux scientifiques en mission polaire suivent un signal inconnu sous la banquise et remettent en question leur expédition.",
+            "Une jeune navigatrice traverse l'archipel à la recherche d'un phare oublié avant la saison des tempêtes.",
+            "Au cœur d'une métropole nocturne, un technicien son découvre un message caché dans des bandes magnétiques.",
+            "Un documentaire immersif suit le quotidien d'artisans et d'explorateurs à travers quatre saisons.",
+            "Lors d'un voyage ferroviaire hivernal, trois inconnus croisent leurs récits autour d'une mystérieuse carte ancienne.",
+        ],
+        "series": [
+            "Chaque épisode suit le parcours croisé de voyageurs et d'observateurs confrontés à des paysages extrêmes.",
+            "Une chronique en plusieurs saisons au plus près d'équipes techniques, de chercheurs et de témoins de terrain.",
+            "Au fil des épisodes, une enquête patiente révèle les secrets d'une station isolée en haute montagne.",
+            "Une série documentaire et de fiction explorant les liens entre mémoire collective, territoires et découvertes.",
+            "Entre océan et sommets, une équipe relève de nouveaux défis logistiques et humains à chaque étape.",
+            "Des récits indépendants reliés par un même fil conducteur et une attention particulière portée à l'image.",
+        ],
+        "episode": [
+            "L'équipe analyse les relevés de la veille et prépare l'étape suivante avant le lever du jour.",
+            "Un imprévu météorologique oblige le groupe à revoir son itinéraire et à improviser un abri.",
+            "Les premières images captées sur le terrain confirment l'hypothèse avancée au début de la mission.",
+            "Une rencontre inattendue apporte un éclairage nouveau sur l'origine des signaux enregistrés.",
+            "La progression devient plus technique à mesure que le relief se resserre autour de la vallée.",
+            "En fin de journée, le bilan des observations ouvre une piste décisive pour la suite du voyage.",
+        ],
+        "live": [
+            "Émission en direct consacrée à l'actualité culturelle, aux documentaires et aux grands reportages.",
+            "Magazine thématique avec invités en plateau, séquences filmées sur le terrain et analyses.",
+            "Diffusion continue de formats courts, découvertes visuelles et programmes familiaux.",
+            "Rendez-vous en direct dédié aux sciences, à la nature et aux expéditions contemporaines.",
+            "Programmation spéciale mêlant cinéma indépendant, entretiens et coulisses de création.",
+            "Journal d'information et sélection de reportages consacrés aux initiatives locales et internationales.",
+        ],
+    },
+    "en": {
+        "movie": [
+            "Along a windswept coastline, an archivist uncovers a tape recording that reshapes the town's history.",
+            "Two researchers on a polar station trace an unexplained signal beneath the ice shelf.",
+            "A young sailor crosses the outer archipelago in search of a forgotten lighthouse before winter storms arrive.",
+            "In a quiet midnight city, an audio engineer finds a hidden sequence inside restored reel-to-reel tapes.",
+            "An immersive feature following craftspeople and field explorers through four changing seasons.",
+            "During an overnight winter train journey, three strangers compare notes around a weathered regional map.",
+        ],
+        "series": [
+            "Each episode follows travelers and field observers navigating remote terrain and shifting conditions.",
+            "A multi-season chronicle spotlighting research crews, engineers, and everyday life off the beaten track.",
+            "Across the season, a patient investigation uncovers the history behind a quiet mountain outpost.",
+            "An anthology blending visual storytelling, exploration, and close portraits of remarkable places.",
+            "From open ocean to high passes, a dedicated crew takes on fresh logistical challenges every week.",
+            "Character-driven stories connected by shared routes, careful craft, and striking cinematography.",
+        ],
+        "episode": [
+            "The crew reviews yesterday's readings and prepares the next leg before daybreak.",
+            "Sudden weather forces the group to change course and set up a temporary shelter.",
+            "Early footage gathered on location confirms the lead spotted at the start of the expedition.",
+            "An unexpected encounter sheds new light on the origin of the recorded signals.",
+            "The route grows steeper as the valley narrows toward the upper ridge.",
+            "At dusk, the latest field notes point toward a decisive new direction for the team.",
+        ],
+        "live": [
+            "Live broadcast featuring cultural stories, independent documentaries, and in-depth reporting.",
+            "Studio magazine with guest conversations, field dispatches, and visual essays.",
+            "Continuous stream of curated short features, travel reels, and family programming.",
+            "Live programming devoted to science, wildlife, and modern exploration.",
+            "Special showcase highlighting independent filmmaking, interviews, and behind-the-scenes craft.",
+            "Hourly roundup of regional features, nature coverage, and international stories.",
+        ],
+    },
+}

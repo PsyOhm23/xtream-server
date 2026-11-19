@@ -74,6 +74,18 @@ class TestDemoCatalog(unittest.TestCase):
         self.assertTrue(episodes[0]["meta"]["poster"].startswith("/demo-art/series/"))
         self.assertEqual(episodes[0]["episode_image"], episodes[0]["meta"]["poster"])
 
+    def test_hero_series_uses_curated_copy_in_both_languages(self):
+        fr_episodes = [item for item in demo_generator.build_catalog("demo_fr") if item["series_id"] == 33201]
+        en_episodes = [item for item in demo_generator.build_catalog("demo_en") if item["series_id"] == 33201]
+        self.assertEqual(len(fr_episodes), 12)
+        self.assertEqual(len(en_episodes), 12)
+        self.assertEqual(fr_episodes[0]["meta"]["title"], "Crête boréale")
+        self.assertEqual(en_episodes[0]["meta"]["title"], "Boreal Ridge")
+        self.assertEqual(fr_episodes[0]["episode_title"], "Camp de base")
+        self.assertEqual(en_episodes[0]["episode_title"], "Base Camp")
+        self.assertEqual(fr_episodes[-1]["season"], 2)
+        self.assertEqual(en_episodes[-1]["episode_title"], "Final Camp")
+
 
 class TestDemoApi(unittest.TestCase):
     def setUp(self):

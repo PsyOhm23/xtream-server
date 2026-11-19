@@ -116,35 +116,56 @@ def _series(lang):
     for category in demo_config.SERIES_CATEGORIES:
         for index in range(1, demo_config.SERIES_PER_CAT + 1):
             series_id = 30000 + int(category["id"]) * 100 + index
+            hero = demo_config.HERO_SERIES.get(series_id)
             show = _seeded(lang, series_id, "series")
+            if hero:
+                hero_copy = hero[lang]
+                show_title = hero_copy["title"]
+                show_overview = hero_copy["overview"]
+                show_director = hero_copy["director"]
+                show_cast = hero_copy["cast"]
+                show_rating = hero["rating"]
+                show_year = hero["year"]
+            else:
+                show_title = show["title"]
+                show_overview = show["overview"]
+                show_director = show["director"]
+                show_cast = show["cast"]
+                show_rating = show["rating"]
+                show_year = show["year"]
             poster = _pick(_SERIES_POSTERS[category["id"]], series_id)
             backdrop = _pick(_SERIES_BACKDROPS[category["id"]], series_id)
             show_meta = _meta(
-                title=show["title"],
-                overview=show["overview"],
-                director=show["director"],
-                cast=show["cast"],
-                rating=show["rating"],
-                year=show["year"],
+                title=show_title,
+                overview=show_overview,
+                director=show_director,
+                cast=show_cast,
+                rating=show_rating,
+                year=show_year,
                 poster=poster,
                 backdrop=backdrop,
                 genre=category[lang],
                 tmdb_id=0,
             )
             for season in range(1, demo_config.SEASONS_PER_SERIES + 1):
+                hero_episodes = hero[lang]["episodes"].get(season) if hero else None
                 for episode in range(1, demo_config.EPISODES_PER_SEASON + 1):
                     episode_id = series_id * 100 + season * 10 + episode
                     ep = _seeded(lang, episode_id, "episode")
-                    title = f"{show['title']} - S{season:02d}E{episode:02d} - {ep['title']}"
+                    if hero_episodes and episode - 1 < len(hero_episodes):
+                        ep_title, ep_overview = hero_episodes[episode - 1]
+                    else:
+                        ep_title, ep_overview = ep["title"], ep["overview"]
+                    title = f"{show_title} - S{season:02d}E{episode:02d} - {ep_title}"
                     source = playback_url("series", episode_id, "")
                     rows.append({
                         "stream_id": episode_id,
                         "_identity": f"demo:episode:{episode_id}",
                         "name": title,
                         "title": title,
-                        "episode_title": ep["title"],
+                        "episode_title": ep_title,
                         "episode_num": episode,
-                        "episode_plot": ep["overview"],
+                        "episode_plot": ep_overview,
                         "episode_image": poster,
                         "episode_rating": ep["rating"],
                         "category_name": category[lang],
@@ -206,11 +227,15 @@ def _live_channels(lang):
 def describe(lang, seed):
     """One deterministic title and description for an EPG slot."""
     title = synthetic_title(lang, int(seed))
-    with _LOCK:
-        fake = _FAKERS[lang]
-        fake.seed_instance(int(seed))
-        description = fake.paragraph(nb_sentences=2)
+    description = _demo_overview(lang, seed, "live")
     return title, description
+
+
+def _demo_overview(lang, seed, kind):
+    """Pick a deterministic curated summary sentence for the demo catalog."""
+    pools = demo_config.DEMO_OVERVIEWS.get(lang) or demo_config.DEMO_OVERVIEWS["en"]
+    pool = pools.get(kind) or pools["movie"]
+    return pool[int(seed) % len(pool)]
 
 
 def synthetic_title(lang, seed):
@@ -290,7 +315,7 @@ def _seeded(lang, seed, kind):
         fake = _FAKERS[lang]
         fake.seed_instance(int(seed))
         title = synthetic_title(lang, int(seed))
-        overview = fake.paragraph(nb_sentences=2 if kind != "episode" else 1)
+        overview = _demo_overview(lang, seed, kind)
         director = fake.name() if kind != "live" else ""
         cast = ", ".join(fake.name() for _ in range(3)) if kind != "live" else ""
         rating = f"{fake.random_int(60, 90) / 10:.1f}"
