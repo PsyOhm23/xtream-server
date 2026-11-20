@@ -46,7 +46,8 @@ class TestDemoCatalog(unittest.TestCase):
         self.assertEqual(heroes[0]["name"], "Sintel (2010)")
         self.assertTrue(heroes[0]["meta"]["overview"].endswith(demo_config.BLENDER_CREDIT))
         self.assertEqual(heroes[5]["name"], "Sprite Fright (2021)")
-        self.assertTrue(heroes[0]["meta"]["poster"].startswith("https://image.tmdb.org/t/p/w500/"))
+        self.assertEqual(heroes[0]["meta"]["poster"], "/demo-art/movies/hero_sintel.jpg")
+        self.assertEqual(heroes[0]["meta"]["backdrop"], "/demo-art/backdrops/hero_sintel.jpg")
         generated = movies[6:]
         self.assertEqual(len(generated), len(demo_config.VOD_CATEGORIES) * demo_config.MOVIES_PER_CAT)
         self.assertTrue(all(item["meta"]["id"] == 0 for item in generated))
@@ -132,7 +133,8 @@ class TestDemoApi(unittest.TestCase):
         self.assertEqual(body["info"]["tmdb_id"], 45745)
         self.assertEqual(body["movie_data"]["container_extension"], "mp4")
         self.assertIn("duration_secs", body["info"])
-        self.assertTrue(body["info"]["backdrop_path"][0].startswith("https://image.tmdb.org/t/p/"))
+        self.assertTrue(body["info"]["backdrop_path"][0].endswith("/demo-art/backdrops/hero_sintel.jpg"))
+        self.assertTrue(body["info"]["movie_image"].endswith("/demo-art/movies/hero_sintel.jpg"))
 
         plain = self.client.get("/player_api.php?username=demo&password=demo&action=get_vod_info&vod_id=22001")
         plain_info = plain.get_json()["info"]

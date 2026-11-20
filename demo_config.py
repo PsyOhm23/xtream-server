@@ -40,6 +40,9 @@ SERIES_CATEGORIES = [
 
 # Creative Commons films from the Blender Foundation.
 # Only these rows carry a real TMDB id. Generated titles leave it empty.
+# Posters and backdrops are served from demo_art. A full image.tmdb.org URL is
+# rewritten by the app into a CDN request, and the test TV emulator rejects that
+# certificate when its clock is behind. Root-relative paths become local URLs.
 HERO_MOVIES = [
     {
         "stream_id": 2001,
@@ -48,8 +51,8 @@ HERO_MOVIES = [
         "category_id": "20",
         "year": 2010,
         "duration_secs": 888,
-        "poster": "https://image.tmdb.org/t/p/w500/l98Zns4oQe1BSvbF4hJ8oL6VSf0.jpg",
-        "backdrop": "https://image.tmdb.org/t/p/w1280/msqeiEyIRpPAtrCeRGFNZQ9tkJL.jpg",
+        "poster": "/demo-art/movies/hero_sintel.jpg",
+        "backdrop": "/demo-art/backdrops/hero_sintel.jpg",
         "fr": {
             "title": "Sintel",
             "overview": "Une jeune guerrière part à la recherche du dragon qu'elle a élevé.",
@@ -70,8 +73,8 @@ HERO_MOVIES = [
         "category_id": "21",
         "year": 2012,
         "duration_secs": 734,
-        "poster": "https://image.tmdb.org/t/p/w500/8qy3jRmaHR7f8VZh3iXCqCWfFsH.jpg",
-        "backdrop": "https://image.tmdb.org/t/p/w1280/fOy6SL5Zs2PFcNXwqEPIDPrLB1q.jpg",
+        "poster": "/demo-art/movies/hero_tears_of_steel.jpg",
+        "backdrop": "/demo-art/backdrops/hero_tears_of_steel.jpg",
         "fr": {
             "title": "Tears of Steel",
             "overview": "À Amsterdam, un groupe tente de réparer un désastre venu du futur.",
@@ -92,8 +95,8 @@ HERO_MOVIES = [
         "category_id": "20",
         "year": 2008,
         "duration_secs": 600,
-        "poster": "https://image.tmdb.org/t/p/w500/i9jJzvoXET4D9pOkoEwncSdNNER.jpg",
-        "backdrop": "https://image.tmdb.org/t/p/w1280/xtdybjRRZ15mCrPOvEld305myys.jpg",
+        "poster": "/demo-art/movies/hero_big_buck_bunny.jpg",
+        "backdrop": "/demo-art/backdrops/hero_big_buck_bunny.jpg",
         "fr": {
             "title": "Big Buck Bunny",
             "overview": "Un grand lapin décide de rendre la pareille à trois rongeurs moqueurs.",
@@ -114,8 +117,8 @@ HERO_MOVIES = [
         "category_id": "21",
         "year": 2015,
         "duration_secs": 720,
-        "poster": "https://image.tmdb.org/t/p/w500/5ZXi0oitpEgAdoJglFTc5SZF9nt.jpg",
-        "backdrop": "https://image.tmdb.org/t/p/w1280/f2wABsgj2lIR2dkDEfBZX8p4Iyk.jpg",
+        "poster": "/demo-art/movies/hero_cosmos_laundromat.jpg",
+        "backdrop": "/demo-art/backdrops/hero_cosmos_laundromat.jpg",
         "fr": {
             "title": "Cosmos Laundromat",
             "overview": "Sur une île déserte, un mouton découragé rencontre un vendeur étrange.",
@@ -136,8 +139,8 @@ HERO_MOVIES = [
         "category_id": "20",
         "year": 2019,
         "duration_secs": 450,
-        "poster": "https://image.tmdb.org/t/p/w500/hDz3xAmqwAbJ1H3Zz4L0XuBM7yp.jpg",
-        "backdrop": "https://image.tmdb.org/t/p/w1280/lL04DVOu1b64Xoj1EuWHZdtcfaZ.jpg",
+        "poster": "/demo-art/movies/hero_spring.jpg",
+        "backdrop": "/demo-art/backdrops/hero_spring.jpg",
         "fr": {
             "title": "Spring",
             "overview": "Une bergère affronte les esprits de la nature pour protéger son troupeau.",
@@ -159,8 +162,8 @@ HERO_MOVIES = [
         "category_id": "20",
         "year": 2021,
         "duration_secs": 600,
-        "poster": "https://image.tmdb.org/t/p/w500/AjWJQOogG4Irpff6K49tzrUTb1s.jpg",
-        "backdrop": "https://image.tmdb.org/t/p/w1280/aCMT1okuiKFnyKHdCOez66rJKyT.jpg",
+        "poster": "/demo-art/movies/hero_sprite_fright.jpg",
+        "backdrop": "/demo-art/backdrops/hero_sprite_fright.jpg",
         "fr": {
             "title": "Sprite Fright",
             "overview": "Des scouts en campement découvrent qu'une créature rôde dans les bois.",
