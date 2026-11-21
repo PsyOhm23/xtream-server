@@ -835,7 +835,7 @@ def ordered_categories(videos, kinds):
         found.setdefault(video["category_id"], video["category_name"])
     ids = list(found)
     if ids and all(str(category_id).isdigit() and int(category_id) < 100 for category_id in ids):
-        ids.sort(key=lambda category_id: int(category_id))
+        ids.sort(key=demo_generator.category_rank)
     else:
         ids.sort(key=lambda category_id: found[category_id])
     return [

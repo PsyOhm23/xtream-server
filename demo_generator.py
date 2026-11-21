@@ -18,6 +18,20 @@ _FAKERS = {
 _ADDED = "1700000000"
 
 
+def category_rank(category_id):
+    """Home order for a demo category id. Unknown ids stay after the config list."""
+    wanted = str(category_id)
+    ordered = (
+        demo_config.LIVE_CATEGORIES
+        + demo_config.VOD_CATEGORIES
+        + demo_config.SERIES_CATEGORIES
+    )
+    for index, category in enumerate(ordered):
+        if category["id"] == wanted:
+            return index
+    return len(ordered)
+
+
 def is_demo_user(username):
     """Demo accounts are demo, demo_fr, demo_en, and any future demo_* user."""
     return bool(username) and username.lower().startswith("demo")
@@ -83,6 +97,7 @@ def _hero_movies(lang):
             backdrop=hero.get("backdrop") or "",
             tmdb_id=int(hero["tmdb_id"]),
             duration_secs=int(hero["duration_secs"]),
+            added_offset=int(hero.get("added_offset", 0)),
         ))
     return rows
 
@@ -93,6 +108,14 @@ def _generated_movies(lang):
         for index in range(1, demo_config.MOVIES_PER_CAT + 1):
             stream_id = 20000 + int(category["id"]) * 100 + index
             fields = _seeded(lang, stream_id, "movie")
+            # Sci-Fi and Animation are the first two home rows.
+            # Generated films there stay older so they are not repeated above.
+            if category["id"] == "22":
+                added_offset = 400
+            elif category["id"] == "23":
+                added_offset = 300
+            else:
+                added_offset = 0
             rows.append(_movie_row(
                 stream_id=stream_id,
                 name=fields["title"],
@@ -107,6 +130,7 @@ def _generated_movies(lang):
                 backdrop=_pick(_BACKDROPS[category["id"]], stream_id),
                 tmdb_id=0,
                 duration_secs=fields["duration_secs"],
+                added_offset=added_offset,
             ))
     return rows
 
@@ -134,6 +158,7 @@ def _series(lang):
                 show_rating = show["rating"]
                 show_year = show["year"]
             poster = _pick(_SERIES_POSTERS[category["id"]], series_id)
+            added_offset = _series_added_offset(category["id"], index)
             backdrop = _pick(_SERIES_BACKDROPS[category["id"]], series_id)
             show_meta = _meta(
                 title=show_title,
@@ -175,7 +200,7 @@ def _series(lang):
                         "container_extension": stream_extension(source),
                         "path": source,
                         "direct_source": "",
-                        "added": _ADDED,
+                        "added": _added_stamp(added_offset),
                         "duration_secs": demo_config.EPISODE_DURATION_SECS,
                         "meta": show_meta,
                         "series_id": series_id,
@@ -256,7 +281,26 @@ def _with_credit(overview):
     return f"{text} {credit}"
 
 
-def _movie_row(stream_id, name, year, category, lang, overview, director, cast, rating, poster, tmdb_id, duration_secs, backdrop=""):
+def _series_added_offset(category_id, index):
+    """Recent series stay off the first two home rows and keep distinct posters."""
+    if category_id == "32" and index <= 4:
+        return 900 - index
+    if category_id == "33" and index <= 4:
+        return 800 - index
+    if category_id == "32":
+        return 500 - index
+    if category_id == "33":
+        return 400 - index
+    if category_id == "31":
+        return 200 - index
+    return 100 - index
+
+
+def _added_stamp(offset=0):
+    return str(int(_ADDED) + int(offset))
+
+
+def _movie_row(stream_id, name, year, category, lang, overview, director, cast, rating, poster, tmdb_id, duration_secs, backdrop="", added_offset=0):
     display = f"{name} ({year})" if year else name
     source = playback_url("movie", stream_id, "")
     return {
@@ -271,7 +315,7 @@ def _movie_row(stream_id, name, year, category, lang, overview, director, cast, 
         "container_extension": stream_extension(source),
         "path": source,
         "direct_source": "",
-        "added": _ADDED,
+        "added": _added_stamp(added_offset),
         "duration_secs": int(duration_secs),
         "meta": _meta(
             title=name,

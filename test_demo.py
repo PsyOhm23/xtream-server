@@ -46,6 +46,7 @@ class TestDemoCatalog(unittest.TestCase):
         self.assertEqual(heroes[0]["name"], "Sintel (2010)")
         self.assertTrue(heroes[0]["meta"]["overview"].endswith(demo_config.BLENDER_CREDIT))
         self.assertEqual(heroes[5]["name"], "Sprite Fright (2021)")
+        self.assertEqual(heroes[5]["category_id"], "22")
         self.assertEqual(heroes[0]["meta"]["poster"], "/demo-art/movies/hero_sintel.jpg")
         self.assertEqual(heroes[0]["meta"]["backdrop"], "/demo-art/backdrops/hero_sintel.jpg")
         generated = movies[6:]
@@ -60,6 +61,37 @@ class TestDemoCatalog(unittest.TestCase):
             parts = item["meta"]["title"].split()
             self.assertEqual(len(parts), 2)
             self.assertTrue(all(part in allowed for part in parts))
+
+    def test_recent_rows_do_not_repeat_the_home_categories(self):
+        catalog = demo_generator.build_catalog("demo_fr")
+        movies = [item for item in catalog if item["kind"] == "movie"]
+        recent_movies = sorted(movies, key=lambda item: (-int(item["added"]), movies.index(item)))[:8]
+        movies_by_category = {}
+        for item in movies:
+            movies_by_category.setdefault(item["category_id"], []).append(item)
+        movie_order = sorted(movies_by_category, key=demo_generator.category_rank)
+        recent_movie_art = {item["meta"]["poster"] for item in recent_movies}
+        for category_id in movie_order[:2]:
+            row_art = {item["meta"]["poster"] for item in movies_by_category[category_id][:8]}
+            self.assertFalse(recent_movie_art & row_art)
+
+        shows = []
+        seen = set()
+        for item in catalog:
+            if item["kind"] != "episode" or item["series_id"] in seen:
+                continue
+            seen.add(item["series_id"])
+            shows.append(item)
+        recent_shows = sorted(shows, key=lambda item: (-int(item["added"]), shows.index(item)))[:8]
+        shows_by_category = {}
+        for item in shows:
+            shows_by_category.setdefault(item["category_id"], []).append(item)
+        series_order = sorted(shows_by_category, key=demo_generator.category_rank)
+        recent_series_art = [item["meta"]["poster"] for item in recent_shows]
+        self.assertEqual(len(recent_series_art), len(set(recent_series_art)))
+        for category_id in series_order[:2]:
+            row_art = {item["meta"]["poster"] for item in shows_by_category[category_id][:8]}
+            self.assertFalse(set(recent_series_art) & row_art)
 
     def test_series_shape_and_channel_count(self):
         videos = demo_generator.build_catalog("demo_fr")
@@ -108,8 +140,8 @@ class TestDemoApi(unittest.TestCase):
 
         categories = self.client.get("/player_api.php?username=demo_fr&password=demo_fr&action=get_vod_categories")
         ids = [row["category_id"] for row in categories.get_json()]
-        self.assertEqual(ids, ["20", "21", "22", "23"])
-        self.assertEqual(categories.get_json()[0]["category_name"], "Animation Open-Source")
+        self.assertEqual(ids, ["21", "20", "22", "23"])
+        self.assertEqual(categories.get_json()[0]["category_name"], "Science-Fiction")
 
         english = self.client.get("/player_api.php?username=demo_en&password=demo_en&action=get_live_categories")
         self.assertEqual(

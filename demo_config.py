@@ -24,9 +24,10 @@ LIVE_CATEGORIES = [
     {"id": "14", "fr": "Jeunesse", "en": "Kids & Toons"},
 ]
 
+# List order is the home order. Sci-Fi stays first, ahead of open-source animation.
 VOD_CATEGORIES = [
-    {"id": "20", "fr": "Animation Open-Source", "en": "Open-Source Animation"},
     {"id": "21", "fr": "Science-Fiction", "en": "Sci-Fi"},
+    {"id": "20", "fr": "Animation Open-Source", "en": "Open-Source Animation"},
     {"id": "22", "fr": "Thriller & Suspense", "en": "Thriller & Suspense"},
     {"id": "23", "fr": "Documentaires", "en": "Documentaries"},
 ]
@@ -40,6 +41,9 @@ SERIES_CATEGORIES = [
 
 # Creative Commons films from the Blender Foundation.
 # Only these rows carry a real TMDB id. Generated titles leave it empty.
+# added_offset is seconds above the catalog base. Higher means more recent.
+# Sci-Fi is the row directly under "Recently added", then open-source animation.
+# The newest films stay in later categories so those posters are not repeated.
 # Posters and backdrops are served from demo_art. A full image.tmdb.org URL is
 # rewritten by the app into a CDN request, and the test TV emulator rejects that
 # certificate when its clock is behind. Root-relative paths become local URLs.
@@ -159,7 +163,8 @@ HERO_MOVIES = [
         "tmdb_id": "891761",
         # No stable public file for Sprite Fright. Elephants Dream is another CC-BY Blender film.
         "stream": "https://archive.org/download/ElephantsDream/ed_1024_512kb.mp4",
-        "category_id": "20",
+        "category_id": "22",
+        "added_offset": 500,
         "year": 2021,
         "duration_secs": 600,
         "poster": "/demo-art/movies/hero_sprite_fright.jpg",
